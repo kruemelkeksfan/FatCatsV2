@@ -1,0 +1,9 @@
+-Day-Night-Cycle
+-visually growing Towns
+-Shadows
+-beautiful Skybox (affected by Day-Night-Cycle)
+-Clouds
+-Biomes
+-animated Vehicles
+-well designed Header Image without Screenshot (Source: https://youtu.be/fATEHq4Zv_Y?si=Z5FDPah8aNQ3QV4J&t=466)
+-only unique Screenshots, no Redfundancy of Assets, rather fewer Screnshots
