@@ -17,7 +17,7 @@ public static class MathUtil
 
     public static List<Tile> FindPath(Tile startTile, Tile targetTile)
 	{
-		MapGenerator mapGenerator = MapGenerator.GetInstance();
+		Map mapGenerator = Map.GetInstance();
 		float minimumMovementCost = mapGenerator.GetMinimumMovementCost();
 
 		Vector2Int startPosition = startTile.GetPosition();

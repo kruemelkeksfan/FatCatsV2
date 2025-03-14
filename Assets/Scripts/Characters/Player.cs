@@ -80,7 +80,7 @@ public class Player : MonoBehaviour
 		inventory.ChangeMoney(startingMoney);
 
 		// Spawn Town Inventories
-		foreach(Town town in MapGenerator.GetInstance().GetTowns())
+		foreach(Town town in Map.GetInstance().GetTowns())
 		{
 			town.gameObject.GetComponent<BuildingController>().AddPlayerWarehouseInventory(this);
 		}
