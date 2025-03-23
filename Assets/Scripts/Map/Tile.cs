@@ -28,7 +28,9 @@ public class Tile : PanelObject, IListener
 	[SerializeField] private Resource[] resourceTypes = { };
 	[SerializeField] private RectTransform resourceEntryPrefab = null;
 	[SerializeField] private Transform movementPathMarkerPrefab = null;
+	[SerializeField] private Transform movementProgressMarkerPrefab = null;
 	[SerializeField] private Transform movementTargetMarkerPrefab = null;
+	[SerializeField] private float movementProgressHeight = 10.0f;
 	[SerializeField] private float baseMovementCost = 1.0f;
 	[SerializeField] private float heightMovementCostFactor = 0.1f;
 	[SerializeField] private float climbingMovementCostFactor = 0.5f;
@@ -43,7 +45,9 @@ public class Tile : PanelObject, IListener
 	private Resource woodReference = new Resource();
 	private new Transform transform = null;
 	private Transform movementPathMarker = null;
+	private Transform movementProgressMarker = null;
 	private Transform movementTargetMarker = null;
+	private Vector3 movementDirection = Vector3.zero;
 
 	private void Awake()
 	{
@@ -68,7 +72,7 @@ public class Tile : PanelObject, IListener
 		for(int i = 0; i < resourceTypes.Length; ++i)
 		{
 			int localMax = Mathf.FloorToInt(resourceAmountFactor[i] * resourceTypes[i].maxAmount);
-			resourceTypes[i].baseYieldPerHour *= ((float) localMax) / ((float) resourceTypes[i].maxAmount);
+			resourceTypes[i].baseYieldPerHour *= ((float)localMax) / ((float)resourceTypes[i].maxAmount);
 			resourceTypes[i].maxAmount = localMax;
 			resourceDictionary.Add(resourceTypes[i], localMax);
 
@@ -85,7 +89,7 @@ public class Tile : PanelObject, IListener
 
 		panel.GetChild(0).GetComponentInChildren<TMP_Text>().text = "(" + position.x + "|" + position.y + ") " + biome;
 
-		RectTransform resourceParent = (RectTransform) panel.GetChild(1);
+		RectTransform resourceParent = (RectTransform)panel.GetChild(1);
 
 		int i = 0;
 		foreach(Resource resourceType in resourceTypes)
@@ -93,7 +97,7 @@ public class Tile : PanelObject, IListener
 			RectTransform resourceEntry;
 			if(i < resourceParent.childCount)
 			{
-				resourceEntry = (RectTransform) resourceParent.GetChild(i);
+				resourceEntry = (RectTransform)resourceParent.GetChild(i);
 			}
 			else
 			{
@@ -104,7 +108,7 @@ public class Tile : PanelObject, IListener
 			resourceEntry.GetChild(0).GetComponent<TMP_Text>().text = resourceType.goodName;
 			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceDictionary[resourceType].ToString();
 			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resourceType.maxAmount;
-			Player player = gameObject.GetComponentInChildren<Player>();	// TODO: After Multiplayer Implementation check, if this is the local Player
+			Player player = gameObject.GetComponentInChildren<Player>();    // TODO: After Multiplayer Implementation check, if this is the local Player
 			if(player != null)
 			{
 				Button collectButton = resourceEntry.GetChild(3).GetComponent<Button>();
@@ -112,7 +116,10 @@ public class Tile : PanelObject, IListener
 
 				collectButton.onClick.RemoveAllListeners();
 				Resource localResourceType = resourceType;
-				collectButton.onClick.AddListener(delegate { player.CollectResources(localResourceType, this, player.GetInventory()); } );
+				collectButton.onClick.AddListener(delegate
+				{
+					player.CollectResources(localResourceType, this, player.GetInventory());
+				});
 			}
 			else
 			{
@@ -147,12 +154,14 @@ public class Tile : PanelObject, IListener
 
 			if(resourceType.forestDependent)
 			{
-				resourceDictionary[resourceType] = Mathf.Clamp(resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float) resourceDictionary[woodReference] / (float) woodReference.maxAmount)),
+				resourceDictionary[resourceType] = Mathf.Clamp(
+					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[woodReference] / (float)woodReference.maxAmount)),
 					0, resourceType.maxAmount);
 			}
 			else
 			{
-				resourceDictionary[resourceType] = Mathf.Clamp(resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float) resourceDictionary[resourceType] / (float) resourceType.maxAmount)),
+				resourceDictionary[resourceType] = Mathf.Clamp(
+					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[resourceType] / (float)resourceType.maxAmount)),
 					0, resourceType.maxAmount);
 			}
 		}
@@ -178,7 +187,7 @@ public class Tile : PanelObject, IListener
 		}
 
 		movementCost *= movementCostFactor;
-		
+
 		return movementCost;
 	}
 
@@ -189,16 +198,48 @@ public class Tile : PanelObject, IListener
 
 	public void MarkMovementPath()
 	{
-		movementPathMarker = GameObject.Instantiate<Transform>(movementPathMarkerPrefab, transform);
+		if(movementPathMarker == null)
+		{
+			movementPathMarker = GameObject.Instantiate<Transform>(movementPathMarkerPrefab, transform);
+		}
+	}
+
+	public void MarkMovementProgress(Tile nextTile)
+	{
+		if(movementProgressMarker == null)
+		{
+			movementProgressMarker = GameObject.Instantiate<Transform>(movementProgressMarkerPrefab, transform);
+
+			Vector3 currentTilePosition = new Vector3(transform.position.x, transform.position.y + movementProgressHeight, transform.position.z);
+			Vector3 nextTilePosition = new Vector3(nextTile.transform.position.x, nextTile.transform.position.y + movementProgressHeight, nextTile.transform.position.z);
+			movementDirection = nextTilePosition - currentTilePosition;
+			
+			movementProgressMarker.position = currentTilePosition;
+			movementProgressMarker.rotation = Quaternion.LookRotation(movementDirection, Vector3.up);
+			movementProgressMarker.localScale = new Vector3(
+				movementProgressMarker.localScale.x,
+				movementProgressMarker.localScale.y,
+				0.0f);
+		}
 	}
 
 	public void MarkMovementTarget()
 	{
-		if(movementPathMarker != null)
+		if(movementTargetMarker == null)
 		{
-			GameObject.Destroy(movementPathMarker.gameObject);
+			movementTargetMarker = GameObject.Instantiate<Transform>(movementTargetMarkerPrefab, transform);
 		}
-		movementTargetMarker = GameObject.Instantiate<Transform>(movementTargetMarkerPrefab, transform);
+	}
+
+	public void UpdateMovementProgress(float progress)
+	{
+		if(movementProgressMarker != null)
+		{
+			movementProgressMarker.localScale = new Vector3(
+				movementProgressMarker.localScale.x,
+				movementProgressMarker.localScale.y,
+				movementDirection.magnitude * progress * 0.1f);
+		}
 	}
 
 	public void UnsetMovementMarkers()
@@ -206,10 +247,17 @@ public class Tile : PanelObject, IListener
 		if(movementPathMarker != null)
 		{
 			GameObject.Destroy(movementPathMarker.gameObject);
+			movementPathMarker = null;
+		}
+		if(movementProgressMarker != null)
+		{
+			GameObject.Destroy(movementProgressMarker.gameObject);
+			movementProgressMarker = null;
 		}
 		if(movementTargetMarker != null)
 		{
 			GameObject.Destroy(movementTargetMarker.gameObject);
+			movementTargetMarker = null;
 		}
 	}
 

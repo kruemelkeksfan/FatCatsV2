@@ -17,8 +17,8 @@ public static class MathUtil
 
     public static List<Tile> FindPath(Tile startTile, Tile targetTile)
 	{
-		Map mapGenerator = Map.GetInstance();
-		float minimumMovementCost = mapGenerator.GetMinimumMovementCost();
+		Map map = Map.GetInstance();
+		float minimumMovementCost = map.GetTile(Vector2Int.zero).CalculateBestMovementCost();
 
 		Vector2Int startPosition = startTile.GetPosition();
 		Vector2Int targetPosition = targetTile.GetPosition();
@@ -38,7 +38,7 @@ public static class MathUtil
 			// Buffer current Node
 			TilePathData currentTilePathData = openList.First.Value;
 
-			// Did we already rech the Target?
+			// Did we already reach the Target?
 			if(currentTilePathData.position == targetPosition)
 			{
 				List<Tile> path = new List<Tile>();
@@ -54,7 +54,18 @@ public static class MathUtil
 			}
 
 			// Find new Neighbours
-			foreach(Vector2Int direction in Directions.VECTORS)
+			Vector2Int[] neighbourDirections = { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down, Vector2Int.zero, Vector2Int.zero };
+			if(currentTilePathData.position.y % 2 == 0)
+			{
+				neighbourDirections[4] = Vector2Int.up + Vector2Int.left;
+				neighbourDirections[5] = Vector2Int.down + Vector2Int.left;
+			}
+			else
+			{
+				neighbourDirections[4] = Vector2Int.up + Vector2Int.right;
+				neighbourDirections[5] = Vector2Int.down + Vector2Int.right;
+			}
+			foreach(Vector2Int direction in neighbourDirections)
 			{
 				Vector2Int neighbourPosition = currentTilePathData.position + direction;
 
@@ -63,7 +74,7 @@ public static class MathUtil
 					continue;
 				}
 
-				Tile neighbourTile = mapGenerator.GetTile(neighbourPosition);
+				Tile neighbourTile = map.GetTile(neighbourPosition);
 				if(neighbourTile == null)
 				{
 					continue;

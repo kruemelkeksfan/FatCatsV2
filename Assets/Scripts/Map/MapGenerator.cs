@@ -24,17 +24,19 @@ public static class MapGenerator
 			{
 				// Generate Terrain
 				// Add 50000.0f, because negative Coordinates for Perlin Maps produce sad Results
-				float height = Mathf.Clamp01(Mathf.PerlinNoise(((seed % 100000) + 50000.0f + x) / smoothness, (100000.0f + z) / smoothness)) * steepness;
-				Transform tileTransform = GameObject.Instantiate<Transform>(terrainPrefabs[0], new Vector3(x * tileSize, height, z * tileSize), Quaternion.identity, terrainParent);
+				Vector3 position = new Vector3(x * tileSize - (z % 2 == 0 ? tileSize * 0.5f : 0.0f), 0.0f, z * tileSize);
+				float height = Mathf.Clamp01(Mathf.PerlinNoise(((seed % 100000) + 50000.0f + position.x) / smoothness, (100000.0f + position.z) / smoothness)) * steepness;
+				position += Vector3.up * height;
+				Transform tileTransform = GameObject.Instantiate<Transform>(terrainPrefabs[0], position, Quaternion.identity, terrainParent);
 
 				// Generate Forests
-				float forestyness = Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + x) / resourceSmoothness, (200000.0f + z) / resourceSmoothness));
+				float forestyness = Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (200000.0f + position.z) / resourceSmoothness));
 				bool forest = false;
 				if(forestPrefabs.Length > 0)
 				{
 					if(forestyness > forestThreshold)
 					{
-						Transform forestTransform = GameObject.Instantiate<Transform>(forestPrefabs[0], new Vector3(x * tileSize, height + tileSize * 0.5f, z * tileSize), Quaternion.identity, tileTransform);
+						Transform forestTransform = GameObject.Instantiate<Transform>(forestPrefabs[0], new Vector3(position.x, height + tileSize * 0.5f, position.z), Quaternion.identity, tileTransform);
 						forest = true;
 					}
 				}
@@ -50,10 +52,10 @@ public static class MapGenerator
 					Mathf.Clamp01((1.0f - forestyness)),																							// Herbs
 					Mathf.Clamp01((1.0f - forestyness)),																							// Flax
 					Mathf.Clamp01(1.0f),																											// Stone
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + x) / resourceSmoothness, (300000.0f + z) / resourceSmoothness)),	// Copper Ore
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + x) / resourceSmoothness, (400000.0f + z) / resourceSmoothness)),	// Iron Ore
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + x) / resourceSmoothness, (500000.0f + z) / resourceSmoothness)),	// Gold Ore
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + x) / resourceSmoothness, (600000.0f + z) / resourceSmoothness))	// Coal
+					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (300000.0f + position.z) / resourceSmoothness)),	// Copper Ore
+					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (400000.0f + position.z) / resourceSmoothness)),	// Iron Ore
+					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (500000.0f + position.z) / resourceSmoothness)),	// Gold Ore
+					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (600000.0f + position.z) / resourceSmoothness))		// Coal
 					};
 				}
 

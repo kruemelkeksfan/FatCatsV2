@@ -100,7 +100,7 @@ public class Player : MonoBehaviour
 		UpdatePositionButton(currentTile);
 
 		// Inventory Button
-		characterPanel.GetChild(4).GetComponent<Button>().onClick.AddListener(delegate
+		characterPanel.GetChild(5).GetComponent<Button>().onClick.AddListener(delegate
 		{
 			panelManager.OpenPanel(inventory);
 		});
@@ -141,15 +141,31 @@ public class Player : MonoBehaviour
 					List<Tile> newPath = MathUtil.FindPath(startTile, targetTile);
 					if(newPath != null)
 					{
-						startTile.GetComponentInChildren<Market>()?.PlayerExit(inventory);
-
-						ResetAction(true, false, true);
-						path = newPath;
-						foreach(Tile tile in path)
+						ResetAction(true, false, false);
+						currentAction = new Action("Ready to move", 0.0, double.MaxValue, false, characterActionText, delegate
 						{
-							tile.MarkMovementPath();
+						});
+						path = newPath;
+
+						if(path.Count > 1)
+						{
+							startTile.GetComponentInChildren<Market>()?.PlayerExit(inventory);
+
+							foreach(Tile tile in path)
+							{
+								tile.MarkMovementPath();
+							}
+							startTile.MarkMovementProgress(path[1]);
+							targetTile.MarkMovementTarget();
+
+							float eta = 0.0f;
+							float movementCostFactor = CalculateMovementCostFactor();
+							for(int i = 1; i < path.Count; ++i)
+							{
+								eta += path[i].CalculateMovementCost(path[i - 1], movementCostFactor);
+							}
+							infoController.AddMessage("Movement ETA " + (eta * 24.0f).ToString("F1") + "h", false, false);
 						}
-						targetTile.MarkMovementTarget();
 					}
 					else
 					{
@@ -171,6 +187,12 @@ public class Player : MonoBehaviour
 				{
 					currentAction.startTime = endTime;
 				}
+				else if(currentAction.actionName == "Moving")
+				{
+					currentAction = new Action("Ready to move", 0.0, double.MaxValue, false, characterActionText, delegate
+					{
+					});
+				}
 				else
 				{
 					ResetAction(false, false, true);
@@ -178,43 +200,52 @@ public class Player : MonoBehaviour
 				}
 			}
 
-			if(path != null && currentAction.actionName == "Idle")
+			if(path != null)
 			{
-				if(pathIndex < path.Count)
+				if(currentAction.actionName == "Ready to move")
 				{
-					currentAction = new Action("Moving", (endTime < time) ? endTime : time,
-						path[pathIndex].CalculateMovementCost(path[pathIndex - 1], CalculateMovementCostFactor()), false,
-						characterActionText,
-						delegate
-						{
-							transform.SetParent(path[pathIndex].GetTransform(), false);
-
-							UpdatePositionButton(path[pathIndex]);
-
-							if(localPlayer)
-							{
-								panelManager.QueueAllPanelUpdate();
-							}
-
-							++pathIndex;
-						});
-				}
-				else
-				{
-					Town targetTown = path[path.Count - 1].GetTown();
-					if(targetTown != null)
+					if(pathIndex < path.Count)
 					{
-						infoController.AddMessage("You arrived at " + targetTown.GetTownName(), false, false);
+						currentAction = new Action("Moving", (endTime < time) ? endTime : time,
+							path[pathIndex].CalculateMovementCost(path[pathIndex - 1], CalculateMovementCostFactor()), false,
+							characterActionText,
+							delegate
+							{
+								transform.SetParent(path[pathIndex].GetTransform(), false);
+
+								UpdatePositionButton(path[pathIndex]);
+
+								if(localPlayer)
+								{
+									panelManager.QueueAllPanelUpdate();
+								}
+
+								++pathIndex;
+							});
+						path[pathIndex - 1].MarkMovementProgress(path[pathIndex]);
 					}
 					else
 					{
-						Vector2Int targetPosition = path[path.Count - 1].GetPosition();
-						infoController.AddMessage("You arrived at (" + targetPosition.x + "|" + targetPosition.y + ")", false, false);
-					}
+						if(path.Count > 1)
+						{
+							Town targetTown = path[path.Count - 1].GetTown();
+							if(targetTown != null)
+							{
+								infoController.AddMessage("You arrived at " + targetTown.GetTownName(), false, false);
+							}
+							else
+							{
+								Vector2Int targetPosition = path[path.Count - 1].GetPosition();
+								infoController.AddMessage("You arrived at (" + targetPosition.x + "|" + targetPosition.y + ")", false, false);
+							}
+						}
 
-					ResetAction(true, false, true);
-					break;
+						ResetAction(true, false, true);
+						break;
+					}
 				}
+
+				path[pathIndex - 1].UpdateMovementProgress((float)((time - currentAction.startTime) / currentAction.duration));
 			}
 		}
 		while(endTime < time);
@@ -266,7 +297,7 @@ public class Player : MonoBehaviour
 			workplace.Item1.jobs[workplace.Item2].playerWorkers.Remove(this);
 			workplace = null;
 		}
-		
+
 		if(performEndAction)
 		{
 			currentAction.endAction();
@@ -274,7 +305,9 @@ public class Player : MonoBehaviour
 
 		if(setIdle)
 		{
-			currentAction = new Action("Idle", 0.0, 0.0, false, characterActionText, delegate {});
+			currentAction = new Action("Idle", 0.0, 0.0, false, characterActionText, delegate
+			{
+			});
 
 			if(path == null)
 			{
@@ -341,7 +374,7 @@ public class Player : MonoBehaviour
 			}
 		});
 		workplace = new Tuple<Building, int>(building, jobId);
-		productive = false;	// Productivity will only be enabled after 1 full Cycle
+		productive = false; // Productivity will only be enabled after 1 full Cycle
 	}
 
 	public void RestartPathIfCheaper()
@@ -357,7 +390,6 @@ public class Player : MonoBehaviour
 	{
 		Vector2Int position = tile.GetPosition();
 		Town town = tile.GetTown();
-		positionButton.GetComponentInChildren<TMP_Text>().text = "Position (" + position.x + "|" + position.y + ")";
 		positionButton.onClick.RemoveAllListeners();
 		positionButton.onClick.AddListener(delegate
 		{

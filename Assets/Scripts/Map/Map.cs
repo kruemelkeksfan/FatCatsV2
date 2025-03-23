@@ -52,11 +52,6 @@ public class Map : MonoBehaviour
 		GameObject.Instantiate<Player>(playerPrefab).SetPosition(towns[UnityEngine.Random.Range(0, towns.Count)].gameObject.GetComponentInParent<Tile>());
 	}
 
-	public float GetMinimumMovementCost()
-	{
-		return terrainPrefabs[0].GetComponent<Tile>().CalculateBestMovementCost();
-	}
-
 	public Tile GetTile(Vector2Int position)
 	{
 		if(position.x >= 0 && position.x < tiles.GetLength(0) && position.y >= 0 && position.y < tiles.GetLength(1))
