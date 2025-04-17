@@ -45,7 +45,7 @@ public class TimeController : MonoBehaviour
 	private List<Coroutine> iteratableCoroutines = null;
 	private List<IListener>[] dailyUpdateListeners = null;
 	private int lastDailyUpdate = 1;
-	private Color inactiveTimeButtonColor = new Color();
+	private Color? inactiveTimeButtonColor = null;
 
 	public static TimeController GetInstance()
 	{
@@ -64,7 +64,6 @@ public class TimeController : MonoBehaviour
 
 	private void Start()
 	{
-		inactiveTimeButtonColor = timeButtons[0].color;
 		gameTime = 1.3334; // Start on Day 1, 8 a.m.
 		SetTimeScale(0);
 	}
@@ -217,12 +216,17 @@ public class TimeController : MonoBehaviour
 
 	public void SetTimeScale(int timeScaleIndex)
 	{
+		if(!inactiveTimeButtonColor.HasValue)
+		{
+			inactiveTimeButtonColor = timeButtons[0].color;
+		}
+
 		currentTimeScaleIndex = timeScaleIndex;
 		timeScale = timeScales[timeScaleIndex];
 
 		foreach(Image timeButton in timeButtons)
 		{
-			timeButton.color = inactiveTimeButtonColor;
+			timeButton.color = inactiveTimeButtonColor.Value;
 		}
 		timeButtons[timeScaleIndex].color = activeTimeButtonColor;
 	}

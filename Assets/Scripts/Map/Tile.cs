@@ -1,5 +1,4 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -36,6 +35,7 @@ public class Tile : PanelObject, IListener
 	[SerializeField] private float climbingMovementCostFactor = 0.5f;
 	[SerializeField] private float forestMovementCostFactor = 1.2f;
 	[SerializeField] private float townMovementCostFactor = 0.8f;
+	[SerializeField] private int maxVisionRange = 2;
 	private Vector2Int position = Vector2Int.zero;
 	private string biome = "";
 	private float height = 0.0f;
@@ -48,6 +48,7 @@ public class Tile : PanelObject, IListener
 	private Transform movementProgressMarker = null;
 	private Transform movementTargetMarker = null;
 	private Vector3 movementDirection = Vector3.zero;
+	private bool fogOfWar = false;
 
 	private void Awake()
 	{
@@ -213,7 +214,7 @@ public class Tile : PanelObject, IListener
 			Vector3 currentTilePosition = new Vector3(transform.position.x, transform.position.y + movementProgressHeight, transform.position.z);
 			Vector3 nextTilePosition = new Vector3(nextTile.transform.position.x, nextTile.transform.position.y + movementProgressHeight, nextTile.transform.position.z);
 			movementDirection = nextTilePosition - currentTilePosition;
-			
+
 			movementProgressMarker.position = currentTilePosition;
 			movementProgressMarker.rotation = Quaternion.LookRotation(movementDirection, Vector3.up);
 			movementProgressMarker.localScale = new Vector3(
@@ -279,6 +280,16 @@ public class Tile : PanelObject, IListener
 		return harvestedAmount;
 	}
 
+	public bool IsForest()
+	{
+		return forest;
+	}
+
+	public bool IsInFogOfWar()
+	{
+		return fogOfWar;
+	}
+
 	public Vector2Int GetPosition()
 	{
 		return position;
@@ -294,14 +305,19 @@ public class Tile : PanelObject, IListener
 		return transform;
 	}
 
-	public bool IsForest()
-	{
-		return forest;
-	}
-
 	public Town GetTown()
 	{
 		return town;
+	}
+
+	public int GetResourceAmount(Resource resource)
+	{
+		return resourceDictionary[resource];
+	}
+
+	public int GetMaxVisionRange()
+	{
+		return maxVisionRange;
 	}
 
 	public void SetForest(bool forest)
@@ -314,8 +330,26 @@ public class Tile : PanelObject, IListener
 		this.town = town;
 	}
 
-	public int GetResourceAmount(Resource resource)
+	public void SetFogOfWar(bool fogOfWar)
 	{
-		return resourceDictionary[resource];
+		if(fogOfWar != this.fogOfWar)
+		{
+			this.fogOfWar = fogOfWar;
+
+			if(fogOfWar)
+			{
+				foreach(MeshRenderer renderer in gameObject.GetComponentsInChildren<MeshRenderer>())
+				{
+					renderer.enabled = false;
+				}
+			}
+			else
+			{
+				foreach(MeshRenderer renderer in gameObject.GetComponentsInChildren<MeshRenderer>())
+				{
+					renderer.enabled = true;
+				}
+			}
+		}
 	}
 }

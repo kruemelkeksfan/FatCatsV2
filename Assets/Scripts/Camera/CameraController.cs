@@ -1,6 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 
@@ -17,7 +14,7 @@ public class CameraController : MonoBehaviour
 
 	private void Update()
 	{
-		if(!EventSystem.current.IsPointerOverGameObject())
+		if(!EventSystem.current.IsPointerOverGameObject() && transform.parent.parent != null)
 		{
 			transform.Translate(Vector3.forward * Input.mouseScrollDelta.y * transform.position.y * zoomSpeed, Space.Self);
 

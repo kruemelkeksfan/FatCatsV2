@@ -13,11 +13,10 @@ public static class MathUtil
 		public TilePathData visitedFrom;
 	}
 
-    public const float EPSILON = 0.0001f;
+	public const float EPSILON = 0.0001f;
 
-    public static List<Tile> FindPath(Tile startTile, Tile targetTile)
+	public static List<Tile> FindPath(Map map, Tile startTile, Tile targetTile)
 	{
-		Map map = Map.GetInstance();
 		float minimumMovementCost = map.GetTile(Vector2Int.zero).CalculateBestMovementCost();
 
 		Vector2Int startPosition = startTile.GetPosition();
@@ -54,17 +53,7 @@ public static class MathUtil
 			}
 
 			// Find new Neighbours
-			Vector2Int[] neighbourDirections = { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down, Vector2Int.zero, Vector2Int.zero };
-			if(currentTilePathData.position.y % 2 == 0)
-			{
-				neighbourDirections[4] = Vector2Int.up + Vector2Int.left;
-				neighbourDirections[5] = Vector2Int.down + Vector2Int.left;
-			}
-			else
-			{
-				neighbourDirections[4] = Vector2Int.up + Vector2Int.right;
-				neighbourDirections[5] = Vector2Int.down + Vector2Int.right;
-			}
+			Vector2Int[] neighbourDirections = GetHexNeighbourDirections(currentTilePathData.position.y % 2 == 0);
 			foreach(Vector2Int direction in neighbourDirections)
 			{
 				Vector2Int neighbourPosition = currentTilePathData.position + direction;
@@ -125,14 +114,31 @@ public static class MathUtil
 					openList.AddLast(neighbourTilePathData);
 				}
 			}
-			
+
 			// Add searched Tile to closedList and remove it from openList
 			closedList.Add(currentTilePathData.position);
 			openList.RemoveFirst();
 		}
 
 		return null;
-    }
+	}
+
+	public static Vector2Int[] GetHexNeighbourDirections(bool isOddRow)
+	{
+		Vector2Int[] neighbourDirections = { Vector2Int.left, Vector2Int.right, Vector2Int.up, Vector2Int.down, Vector2Int.zero, Vector2Int.zero };
+		if(isOddRow)
+		{
+			neighbourDirections[4] = Vector2Int.up + Vector2Int.left;
+			neighbourDirections[5] = Vector2Int.down + Vector2Int.left;
+		}
+		else
+		{
+			neighbourDirections[4] = Vector2Int.up + Vector2Int.right;
+			neighbourDirections[5] = Vector2Int.down + Vector2Int.right;
+		}
+
+		return neighbourDirections;
+	}
 
 	private static float CalculateHeuristicToTarget(Vector2Int start, Vector2Int target, float minimumMovementCost)
 	{

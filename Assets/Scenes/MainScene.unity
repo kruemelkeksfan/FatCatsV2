@@ -1685,7 +1685,7 @@ GameObject:
   - component: {fileID: 985382602}
   - component: {fileID: 985382603}
   m_Layer: 0
-  m_Name: Map
+  m_Name: MapManager
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -1734,8 +1734,11 @@ MonoBehaviour:
   townPrefabs:
   - {fileID: 3485394049712569528, guid: 46016129324d6604081392762736e06e, type: 3}
   maxTownCount: 20
-  generateResources: 1
   terrainParent: {fileID: 753599730}
+  minTileReserve: 1
+  maxTileReserve: 1
+  tilesPerUpdate: 1
+  exitMarkerPrefab: {fileID: 5655600656926450437, guid: cf9296d1b850c6644be5028e5747a032, type: 3}
   playerPrefab: {fileID: 5508002471379027024, guid: b85c696d4768f014295210e0a9f97fa9, type: 3}
 --- !u!1001 &1134789777
 PrefabInstance:
@@ -2377,16 +2380,22 @@ MonoBehaviour:
   mapWidth: 100
   mapHeight: 100
   tileSize: 10
-  terrainPrefabs: []
+  terrainPrefabs:
+  - {fileID: 4230253528286392615, guid: a2963c61915b85e48a37b83458d424d7, type: 3}
   terrainHeightThresholds: []
   seed: 0
-  smoothness: 5
-  steepness: 2
-  forestPrefabs: []
+  smoothness: 50
+  steepness: 8
+  forestPrefabs:
+  - {fileID: 8305162829254087946, guid: 14b613cd95dc4b54392b14e846c62735, type: 3}
   forestThreshold: 0.5
-  resourceSmoothness: 5
-  terrainParent: {fileID: 0}
-  playerPrefab: {fileID: 0}
+  resourceSmoothness: 50
+  maxEncounterMapCount: 48
+  encounterMapOffset: 2000
+  exitMarkerPrefab: {fileID: 5655600656926450437, guid: cf9296d1b850c6644be5028e5747a032, type: 3}
+  minTileReserve: 10000
+  maxTileReserve: 20000
+  tilesPerUpdate: 5
 --- !u!4 &1530048609
 Transform:
   m_ObjectHideFlags: 0
@@ -4332,6 +4341,6 @@ SceneRoots:
   - {fileID: 1172773264}
   - {fileID: 985382602}
   - {fileID: 1530048609}
-  - {fileID: 753599730}
-  - {fileID: 705507995}
   - {fileID: 1949739176}
+  - {fileID: 705507995}
+  - {fileID: 753599730}

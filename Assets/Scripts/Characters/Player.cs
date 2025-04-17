@@ -38,6 +38,7 @@ public class Player : MonoBehaviour
 	private new Transform transform = null;
 	private new Camera camera = null;
 	private EventSystem eventSystem = null;
+	private EncounterMapManager encounterMapManager = null;
 	private List<Tile> path = null;
 	private GoodManager goodManager = null;
 	private TimeController timeController = null;
@@ -51,7 +52,12 @@ public class Player : MonoBehaviour
 	private RectTransform characterActionProgressBar = null;
 	private Vector2 characterActionProgressBarPosition = Vector2.zero;
 	private Vector2 characterActionProgressBarSize = Vector2.one;
-	private Button positionButton = null;
+	private Button tileInfoButton = null;
+	private Button zoomButton = null;
+	private bool inEncounter = false;
+	private Tile currentTile = null;
+	private Map currentMap = null;
+	private EncounterMap encounterMap = null;
 
 	public static Player GetInstance()
 	{
@@ -74,16 +80,11 @@ public class Player : MonoBehaviour
 		timeController = TimeController.GetInstance();
 		panelManager = PanelManager.GetInstance();
 		infoController = InfoController.GetInstance();
+		encounterMapManager = EncounterMapManager.GetInstance();
 
 		// Init Inventory
 		inventory.SetPlayer(this, false);
 		inventory.ChangeMoney(startingMoney);
-
-		// Spawn Town Inventories
-		foreach(Town town in Map.GetInstance().GetTowns())
-		{
-			town.gameObject.GetComponent<BuildingController>().AddPlayerWarehouseInventory(this);
-		}
 
 		RectTransform characterPanel = panelManager.GetCharacterPanel();
 
@@ -94,10 +95,20 @@ public class Player : MonoBehaviour
 		characterActionProgressBarPosition = characterActionProgressBar.anchoredPosition;
 		characterActionProgressBarSize = characterActionProgressBar.sizeDelta;
 
-		// Position Button
-		positionButton = characterPanel.GetChild(3).GetComponent<Button>();
-		Tile currentTile = gameObject.GetComponentInParent<Tile>();
-		UpdatePositionButton(currentTile);
+		// Position Buttons
+		tileInfoButton = characterPanel.GetChild(3).GetComponent<Button>();
+		zoomButton = characterPanel.GetChild(4).GetComponent<Button>();
+		zoomButton.onClick.AddListener(delegate
+		{
+			ToggleEncounter();
+		});
+
+		// Spawn Town Inventories
+		currentMap = MapManager.GetInstance().GetMap();
+		foreach(Town town in currentMap.towns)
+		{
+			town.gameObject.GetComponent<BuildingController>().AddPlayerWarehouseInventory(this);
+		}
 
 		// Inventory Button
 		characterPanel.GetChild(5).GetComponent<Button>().onClick.AddListener(delegate
@@ -138,7 +149,7 @@ public class Player : MonoBehaviour
 				if(targetTile != null)
 				{
 					Tile startTile = transform.parent.GetComponent<Tile>();
-					List<Tile> newPath = MathUtil.FindPath(startTile, targetTile);
+					List<Tile> newPath = MathUtil.FindPath(currentMap, startTile, targetTile);
 					if(newPath != null)
 					{
 						ResetAction(true, false, false);
@@ -164,7 +175,7 @@ public class Player : MonoBehaviour
 							{
 								eta += path[i].CalculateMovementCost(path[i - 1], movementCostFactor);
 							}
-							infoController.AddMessage("Movement ETA " + (eta * 24.0f).ToString("F1") + "h", false, false);
+							infoController.AddMessage("Movement ETA " + (eta * 24.0f).ToString("F2") + "h", false, false);
 						}
 					}
 					else
@@ -211,9 +222,7 @@ public class Player : MonoBehaviour
 							characterActionText,
 							delegate
 							{
-								transform.SetParent(path[pathIndex].GetTransform(), false);
-
-								UpdatePositionButton(path[pathIndex]);
+								SetPosition(path[pathIndex]);
 
 								if(localPlayer)
 								{
@@ -386,15 +395,33 @@ public class Player : MonoBehaviour
 		}
 	}
 
-	private void UpdatePositionButton(Tile tile)
+	private void ToggleEncounter()
 	{
-		Vector2Int position = tile.GetPosition();
-		Town town = tile.GetTown();
-		positionButton.onClick.RemoveAllListeners();
-		positionButton.onClick.AddListener(delegate
+		inEncounter = !inEncounter;
+
+		ResetAction(true, false, true);
+
+		if(encounterMap != null)
 		{
-			panelManager.OpenPanel((town != null) ? town : tile);
-		});
+			encounterMapManager.ExitEncounterMap(this, encounterMap, currentTile);
+			encounterMap = null;
+		}
+
+		TMP_Text zoomButtonText = zoomButton.GetComponentInChildren<TMP_Text>();
+		if(inEncounter)
+		{
+			zoomButtonText.text = "Zoom Out";
+
+			List<Player> players = new List<Player>(1);
+			players.Add(this);
+			encounterMap = encounterMapManager.EnterEncounterMap(players, currentTile.GetPosition()); // Side Effect: this Method also sets currentMap via SetPosition()
+		}
+		else
+		{
+			zoomButtonText.text = "Zoom In";
+
+			currentMap = MapManager.GetInstance().GetMap();
+		}
 	}
 
 	public bool IsLocalPlayer()
@@ -417,8 +444,26 @@ public class Player : MonoBehaviour
 		return inventory;
 	}
 
-	public void SetPosition(Tile tile)
+	public void SetPosition(Tile tile, Map currentMap = null)
 	{
+		if(currentMap != null)
+		{
+			this.currentMap = currentMap;
+		}
+
 		transform.SetParent(tile.GetTransform(), false);
+		this.currentMap.UpdateFogOfWar(tile);
+
+		if(!inEncounter)
+		{
+			currentTile = tile;
+
+			Town town = tile.GetTown();
+			tileInfoButton.onClick.RemoveAllListeners();
+			tileInfoButton.onClick.AddListener(delegate
+			{
+				panelManager.OpenPanel((town != null) ? town : tile);
+			});
+		}
 	}
 }
