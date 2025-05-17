@@ -9,7 +9,7 @@ public class EncounterMap : Map
 	public List<Player> players;
 	public Transform terrainParent;
 
-	public EncounterMap(int encounterMapIndex, List<Player> players, Transform terrainParent, Tile[,] tiles, float tileSize, float eyeHeight) : base(tiles, new List<Town>(0), tileSize, eyeHeight)
+	public EncounterMap(int encounterMapIndex, List<Player> players, Transform terrainParent, GameObject mapModel, Tile[,] tiles, float tileSize, float eyeHeight) : base(mapModel, tiles, new List<Town>(0), tileSize, eyeHeight)
 	{
 		this.encounterMapIndex = encounterMapIndex;
 		this.players = players;
@@ -27,6 +27,7 @@ public class EncounterMapManager : MonoBehaviour
 	[SerializeField] private float tileSize = 10.0f;
 	[SerializeField] private Transform[] terrainPrefabs = { };
 	[SerializeField] private Transform[] terrainHeightThresholds = { };
+	[SerializeField] private Material[] terrainMaterials = { };
 	[SerializeField] private int seed = 0;
 	[SerializeField] private float smoothness = 5.0f;
 	[SerializeField] private float steepness = 2.0f;
@@ -120,8 +121,8 @@ public class EncounterMapManager : MonoBehaviour
 				int seed = Mathf.RoundToInt(0.5f * (position.x + position.y) * (position.x + position.y + 1.0f) + position.y) + this.seed;
 
 				Transform terrainParent = (new GameObject("EncounterMap" + i)).GetComponent<Transform>();
-				Tile[,] tiles = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, sightlineEyeHeight,
-					terrainPrefabs, terrainHeightThresholds,
+				Map encounterMap = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, sightlineEyeHeight,
+					terrainPrefabs, terrainHeightThresholds, terrainMaterials,
 					smoothness, steepness,
 					forestPrefabs, forestThreshold,
 					resourceSmoothness,
@@ -130,14 +131,14 @@ public class EncounterMapManager : MonoBehaviour
 					terrainParent,
 					exitMarkerPrefab,
 					tilePool,
-					offsetX, offsetY).tiles;
+					offsetX, offsetY);
 
-				encounterMaps[i] = new EncounterMap(i, players, terrainParent, tiles, tileSize, sightlineEyeHeight);
+				encounterMaps[i] = new EncounterMap(i, players, terrainParent, encounterMap.mapModel, encounterMap.tiles, tileSize, sightlineEyeHeight);
 
 				foreach(Player player in players)
 				{
 					UnityEngine.Random.InitState(player.GetPlayerName().GetHashCode() + seed);
-					player.SetPosition(tiles[UnityEngine.Random.Range(0, tiles.GetLength(0)), UnityEngine.Random.Range(0, tiles.GetLength(1))], encounterMaps[i]);
+					player.SetPosition(encounterMap.tiles[UnityEngine.Random.Range(0, encounterMap.tiles.GetLength(0)), UnityEngine.Random.Range(0, encounterMap.tiles.GetLength(1))], encounterMaps[i]);
 				}
 
 				return encounterMaps[i];

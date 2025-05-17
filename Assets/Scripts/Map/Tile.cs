@@ -24,6 +24,8 @@ public struct Resource
 
 public class Tile : PanelObject, IListener
 {
+	public enum FogOfWar { Visible, Partial, Invisible };
+
 	[SerializeField] private Resource[] resourceTypes = { };
 	[SerializeField] private RectTransform resourceEntryPrefab = null;
 	[SerializeField] private Transform movementPathMarkerPrefab = null;
@@ -48,7 +50,7 @@ public class Tile : PanelObject, IListener
 	private Transform movementProgressMarker = null;
 	private Transform movementTargetMarker = null;
 	private Vector3 movementDirection = Vector3.zero;
-	private bool fogOfWar = false;
+	private FogOfWar fogOfWar = FogOfWar.Visible;
 
 	private void Awake()
 	{
@@ -82,6 +84,8 @@ public class Tile : PanelObject, IListener
 				woodReference = resourceTypes[i];
 			}
 		}
+
+		SetFogOfWar(FogOfWar.Invisible);
 	}
 
 	public override void UpdatePanel(RectTransform panel, bool add = true)
@@ -285,11 +289,6 @@ public class Tile : PanelObject, IListener
 		return forest;
 	}
 
-	public bool IsInFogOfWar()
-	{
-		return fogOfWar;
-	}
-
 	public Vector2Int GetPosition()
 	{
 		return position;
@@ -315,6 +314,11 @@ public class Tile : PanelObject, IListener
 		return resourceDictionary[resource];
 	}
 
+	public FogOfWar GetFogOfWar()
+	{
+		return fogOfWar;
+	}
+
 	public int GetMaxVisionRange()
 	{
 		return maxVisionRange;
@@ -330,25 +334,36 @@ public class Tile : PanelObject, IListener
 		this.town = town;
 	}
 
-	public void SetFogOfWar(bool fogOfWar)
+	public void SetFogOfWar(FogOfWar fogOfWar)
 	{
-		if(fogOfWar != this.fogOfWar)
-		{
-			this.fogOfWar = fogOfWar;
+		this.fogOfWar = fogOfWar;
 
-			if(fogOfWar)
+		if(fogOfWar == FogOfWar.Invisible)
+		{
+			if(transform.childCount > 2)
 			{
-				foreach(MeshRenderer renderer in gameObject.GetComponentsInChildren<MeshRenderer>())
-				{
-					renderer.enabled = false;
-				}
+				transform.GetChild(2).gameObject.SetActive(false);
+			}
+
+			transform.GetChild(0).gameObject.SetActive(true);
+			transform.GetChild(1).gameObject.SetActive(false);
+		}
+		else
+		{
+			if(transform.childCount > 2)
+			{
+				transform.GetChild(2).gameObject.SetActive(true);
+			}
+
+			if(fogOfWar == FogOfWar.Partial)
+			{
+				transform.GetChild(0).gameObject.SetActive(false);
+				transform.GetChild(1).gameObject.SetActive(true);
 			}
 			else
 			{
-				foreach(MeshRenderer renderer in gameObject.GetComponentsInChildren<MeshRenderer>())
-				{
-					renderer.enabled = true;
-				}
+				transform.GetChild(0).gameObject.SetActive(false);
+				transform.GetChild(1).gameObject.SetActive(false);
 			}
 		}
 	}

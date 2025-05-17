@@ -1724,6 +1724,8 @@ MonoBehaviour:
   terrainPrefabs:
   - {fileID: 6444121367772029551, guid: f3a03e0419c2a5a45ab1d6914c097d11, type: 3}
   terrainHeightThresholds: []
+  terrainMaterials:
+  - {fileID: 2100000, guid: e6633bffa59d51343bc2457f1aff8d19, type: 2}
   seed: 10000
   smoothness: 50
   steepness: 8
@@ -1738,8 +1740,8 @@ MonoBehaviour:
   minTileReserve: 1
   maxTileReserve: 1
   tilesPerUpdate: 1
-  exitMarkerPrefab: {fileID: 5655600656926450437, guid: cf9296d1b850c6644be5028e5747a032, type: 3}
   playerPrefab: {fileID: 5508002471379027024, guid: b85c696d4768f014295210e0a9f97fa9, type: 3}
+  sightlineEyeHeight: 5.5
 --- !u!1001 &1134789777
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -2383,6 +2385,8 @@ MonoBehaviour:
   terrainPrefabs:
   - {fileID: 4230253528286392615, guid: a2963c61915b85e48a37b83458d424d7, type: 3}
   terrainHeightThresholds: []
+  terrainMaterials:
+  - {fileID: 2100000, guid: e6633bffa59d51343bc2457f1aff8d19, type: 2}
   seed: 0
   smoothness: 50
   steepness: 8
@@ -2396,6 +2400,7 @@ MonoBehaviour:
   minTileReserve: 10000
   maxTileReserve: 20000
   tilesPerUpdate: 5
+  sightlineEyeHeight: 5.5
 --- !u!4 &1530048609
 Transform:
   m_ObjectHideFlags: 0

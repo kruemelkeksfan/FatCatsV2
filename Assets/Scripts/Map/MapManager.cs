@@ -6,13 +6,15 @@ using UnityEngine;
 [Serializable]
 public class Map
 {
+	public GameObject mapModel;
 	public Tile[,] tiles;
 	public List<Town> towns;
 	public float tileSize;
 	public float eyeHeight;
 
-	public Map(Tile[,] tiles, List<Town> towns, float tileSize, float eyeHeight)
+	public Map(GameObject mapModel, Tile[,] tiles, List<Town> towns, float tileSize, float eyeHeight)
 	{
+		this.mapModel = mapModel;
 		this.tiles = tiles;
 		this.towns = towns;
 		this.tileSize = tileSize;
@@ -32,11 +34,14 @@ public class Map
 					|| (sightLineMagnitude < (tileSize * tile.GetMaxVisionRange() + 1.0f)												// Never show far away Tiles
 					&& !Physics.Raycast(playerTile.GetTransform().position + Vector3.up * eyeHeight, sightLine, sightLineMagnitude)))	// Show Tiles if Sightline is unobstructed
 				{
-					tile.SetFogOfWar(false);
+					tile.SetFogOfWar(Tile.FogOfWar.Visible);
 				}
 				else
 				{
-					tile.SetFogOfWar(true);
+					if(tile.GetFogOfWar() == Tile.FogOfWar.Visible)
+					{
+						tile.SetFogOfWar(Tile.FogOfWar.Partial);
+					}
 				}
 			}
 		}
@@ -116,15 +121,15 @@ public class TilePool
 			return;
 		}
 
-		// Destroy Towns and Forests
-		for(int i = 0; i < tileTransform.childCount; ++i)
+		// Destroy Towns and Forests, but leave Fog of War Particles
+		if(tileTransform.childCount > 2)
 		{
-			GameObject.Destroy(tileTransform.GetChild(i).gameObject);
+			GameObject.Destroy(tileTransform.GetChild(2).gameObject);
 		}
 
 		Tile tile = tileTransform.GetComponent<Tile>();
 		tile.SetTown(null);
-		tile.SetFogOfWar(false);
+		tile.SetFogOfWar(Tile.FogOfWar.Invisible);
 
 		tileTransform.SetParent(poolParent, true);
 		tileTransform.gameObject.SetActive(false);
@@ -141,6 +146,7 @@ public class MapManager : MonoBehaviour
 	[SerializeField] private float tileSize = 10.0f;
 	[SerializeField] private Transform[] terrainPrefabs = { };
 	[SerializeField] private Transform[] terrainHeightThresholds = { };
+	[SerializeField] private Material[] terrainMaterials = { };
 	[SerializeField] private int seed = 0;
 	[SerializeField] private float smoothness = 5.0f;
 	[SerializeField] private float steepness = 2.0f;
@@ -169,7 +175,7 @@ public class MapManager : MonoBehaviour
 
 		tilePool = new TilePool(minTileReserve, maxTileReserve, tilesPerUpdate, terrainPrefabs[0]);
 		map = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, sightlineEyeHeight,
-			terrainPrefabs, terrainHeightThresholds,
+			terrainPrefabs, terrainHeightThresholds, terrainMaterials,
 			smoothness, steepness,
 			forestPrefabs, forestThreshold,
 			resourceSmoothness,
