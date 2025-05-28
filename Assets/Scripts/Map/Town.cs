@@ -407,7 +407,7 @@ public class Town : PanelObject, IListener
 	private string GenerateTownName()
 	{
 		string[] firstParts = new string[] { "Birming", "Glas", "Bris", "Liver", "Man", "Shef", "Edin", "Lei", "Brad", "Coven", "Car", "Bel", "Notting", "Kings", "New", "South", "North", "Ports", "Ply", "Wolver", "Nor", "Bourne", "Aber", "Sunder" };
-		string[] secondParts = new string[] { "ham", "gow", "tol", "pool", "chester", "field", "burgh", "ford", "fort", "try", "diff", "fast", "ton", "castle", "hampton", "ding", "mouth", "burn", "port", "fax" };
+		string[] secondParts = new string[] { "town", "ville", "ham", "gow", "tol", "pool", "chester", "field", "burg", "burgh", "berg", "ford", "fort", "try", "diff", "fast", "ton", "castle", "hampton", "ding", "mouth", "burn", "port", "fax", "hill", "stadt", "sted" };
 
 		return firstParts[UnityEngine.Random.Range(0, firstParts.Length)] + secondParts[UnityEngine.Random.Range(0, secondParts.Length)];
 	}
