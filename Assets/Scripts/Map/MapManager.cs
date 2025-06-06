@@ -106,7 +106,7 @@ public class TilePool
 		}
 
 		Transform tile = tiles.Pop();
-		tile.SetParent(parent);
+		tile.SetParent(parent, false);
 		tile.position = position;
 		tile.gameObject.SetActive(true);
 
@@ -121,17 +121,17 @@ public class TilePool
 			return;
 		}
 
-		// Destroy Towns and Forests, but leave Fog of War Particles
-		if(tileTransform.childCount > 2)
+		// Destroy Towns and Markers, but leave Fog of War and Resources
+		for(int i = 3; i < tileTransform.childCount; ++i)
 		{
-			GameObject.Destroy(tileTransform.GetChild(2).gameObject);
+			GameObject.Destroy(tileTransform.GetChild(i).gameObject);
 		}
 
 		Tile tile = tileTransform.GetComponent<Tile>();
 		tile.SetTown(null);
 		tile.SetFogOfWar(Tile.FogOfWar.Invisible);
 
-		tileTransform.SetParent(poolParent, true);
+		tileTransform.SetParent(poolParent, false);
 		tileTransform.gameObject.SetActive(false);
 		tiles.Push(tileTransform);
 	}
@@ -150,9 +150,9 @@ public class MapManager : MonoBehaviour
 	[SerializeField] private int seed = 0;
 	[SerializeField] private float smoothness = 5.0f;
 	[SerializeField] private float steepness = 2.0f;
-	[SerializeField] private Transform[] forestPrefabs = { };
 	[SerializeField] private float forestThreshold = 0.5f;
 	[SerializeField] private float resourceSmoothness = 5.0f;
+	[SerializeField] private float oreDepositChance = 0.05f;
 	[SerializeField] private Town[] townPrefabs = { };
 	[SerializeField] private int maxTownCount = 20;
 	[SerializeField] private Transform terrainParent = null;
@@ -174,15 +174,12 @@ public class MapManager : MonoBehaviour
 		instance = this;
 
 		tilePool = new TilePool(minTileReserve, maxTileReserve, tilesPerUpdate, terrainPrefabs[0]);
-		map = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, sightlineEyeHeight,
+		map = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, false, sightlineEyeHeight,
 			terrainPrefabs, terrainHeightThresholds, terrainMaterials,
 			smoothness, steepness,
-			forestPrefabs, forestThreshold,
-			resourceSmoothness,
+			forestThreshold, resourceSmoothness, oreDepositChance,
 			townPrefabs, maxTownCount,
-			true,
 			terrainParent,
-			null,
 			tilePool);
 
 		// Spawn Player

@@ -8,18 +8,20 @@ using UnityEngine.UI;
 public struct Resource
 {
 	public string goodName;
-	[Tooltip("Maximum Amount of Reserves of this Resource on this Tile.")]
+	[Tooltip("Maximum Amount of Reserves of this Resource on an optimal Tile.")]
 	public int maxAmount;
+	[Tooltip("Maximum Amount of Reserves of this Resource on this Tile.")]
+	public int localMaxAmount;
 	[Tooltip("Maximum Restocking of Resources on this Tile per Day.")]
 	public float maxGrowthAmount;
+	[Tooltip("Maximum Amount of this Resource on a single Tile in an Encounter Map.")]
+	public int maxDepositSize;
 	[Tooltip("Use Wood Amount to calculate Restocking Rate instead of the Amount of this Resource.")]
 	public bool forestDependent;
 	[Tooltip("The Tool Type necessary to harvest this Resource.")]
 	public EquipmentCategory tool;
 	[Tooltip("How much of this Resource can be harvested per Hour, disregarding Light, Weather and Skill.")]
 	public float baseYieldPerHour;
-	[Tooltip("Name of the Collection Building.")]
-	public string buildingName;
 }
 
 public class Tile : PanelObject, IListener
@@ -41,6 +43,7 @@ public class Tile : PanelObject, IListener
 	private Vector2Int position = Vector2Int.zero;
 	private string biome = "";
 	private float height = 0.0f;
+	private Tile parentTile = null;
 	private Town town = null;
 	private bool forest = true;
 	private Dictionary<Resource, int> resourceDictionary = null;
@@ -55,37 +58,64 @@ public class Tile : PanelObject, IListener
 	private void Awake()
 	{
 		transform = gameObject.GetComponent<Transform>();
+
+		SetFogOfWar(FogOfWar.Invisible);
 	}
 
 	protected override void Start()
 	{
 		base.Start();
 
-		TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Tile);
+		if(parentTile == null)
+		{
+			TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Tile);
+		}
+
+		// Rotate Fog of War randomly
+		transform.GetChild(0).Rotate(0.0f, UnityEngine.Random.Range(0.0f, 360.0f), 0.0f);
+		transform.GetChild(1).Rotate(0.0f, UnityEngine.Random.Range(0.0f, 360.0f), 0.0f);
 	}
 
-	public void InitData(Vector2Int position, string biome, float height, bool forest, float[] resourceAmountFactor)
+	public void InitData(Vector2Int position, string biome, float height, bool forest, Tile parentTile)
 	{
 		this.position = position;
 		this.biome = biome;
 		this.height = height;
+		this.parentTile = parentTile;
 		this.forest = forest;
+	}
 
+	public void InitResources(float[] resourceAmountFactors)
+	{
 		resourceDictionary = new Dictionary<Resource, int>(resourceTypes.Length);
 		for(int i = 0; i < resourceTypes.Length; ++i)
 		{
-			int localMax = Mathf.FloorToInt(resourceAmountFactor[i] * resourceTypes[i].maxAmount);
-			resourceTypes[i].baseYieldPerHour *= ((float)localMax) / ((float)resourceTypes[i].maxAmount);
-			resourceTypes[i].maxAmount = localMax;
-			resourceDictionary.Add(resourceTypes[i], localMax);
+			resourceTypes[i].localMaxAmount = Mathf.FloorToInt(resourceAmountFactors[i] * resourceTypes[i].maxAmount);
+			resourceTypes[i].baseYieldPerHour *= ((float)resourceTypes[i].localMaxAmount) / ((float)resourceTypes[i].maxAmount);
+			resourceDictionary.Add(resourceTypes[i], resourceTypes[i].localMaxAmount);
 
 			if(i == 0)
 			{
 				woodReference = resourceTypes[i];
 			}
 		}
+	}
 
-		SetFogOfWar(FogOfWar.Invisible);
+	public void InitEncounterMapResources(int[] resourceAmounts)
+	{
+		resourceDictionary = new Dictionary<Resource, int>(resourceTypes.Length);
+		for(int i = 0; i < resourceTypes.Length; ++i)
+		{
+			resourceTypes[i].maxAmount = resourceTypes[i].maxDepositSize;
+			resourceTypes[i].localMaxAmount = resourceAmounts[i];
+			resourceTypes[i].baseYieldPerHour *= ((float)resourceTypes[i].localMaxAmount) / ((float)resourceTypes[i].maxAmount);
+			resourceDictionary.Add(resourceTypes[i], resourceTypes[i].localMaxAmount);
+
+			if(i == 0)
+			{
+				woodReference = resourceTypes[i];
+			}
+		}
 	}
 
 	public override void UpdatePanel(RectTransform panel, bool add = true)
@@ -96,6 +126,8 @@ public class Tile : PanelObject, IListener
 
 		RectTransform resourceParent = (RectTransform)panel.GetChild(1);
 
+		// TODO: Show Estimations instead of real Amounts (Estimation Accuracy based on Foragng Skill)
+		// TODO: Show last (visible) Estimation when Tile is partially visible
 		int i = 0;
 		foreach(Resource resourceType in resourceTypes)
 		{
@@ -112,9 +144,9 @@ public class Tile : PanelObject, IListener
 
 			resourceEntry.GetChild(0).GetComponent<TMP_Text>().text = resourceType.goodName;
 			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceDictionary[resourceType].ToString();
-			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resourceType.maxAmount;
-			Player player = gameObject.GetComponentInChildren<Player>();    // TODO: After Multiplayer Implementation check, if this is the local Player
-			if(player != null)
+			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resourceType.localMaxAmount;
+			Player player = null;
+			if(parentTile != null && (player = gameObject.GetComponentInChildren<Player>()) != null) // TODO: After Multiplayer Implementation check, if this is the local Player
 			{
 				Button collectButton = resourceEntry.GetChild(3).GetComponent<Button>();
 				collectButton.gameObject.SetActive(true);
@@ -140,36 +172,40 @@ public class Tile : PanelObject, IListener
 			++i;
 		}
 
-		while(resourceParent.childCount > i)
+		while(i < resourceParent.childCount)
 		{
-			Transform child = resourceParent.GetChild(i);
-			child.SetParent(null, false);
-			GameObject.Destroy(child.gameObject);
+			GameObject.Destroy(resourceParent.GetChild(i).gameObject);
+			++i;
 		}
 	}
 
 	public void Notify()
 	{
+		// Only called on Overworld Map Tiles, Listener is not set up for Encounter Map Tiles
+
+		// Update Resources
 		foreach(Resource resourceType in resourceTypes)
 		{
-			if(resourceType.maxAmount <= 0)
+			if(resourceType.localMaxAmount <= 0)
 			{
+
 				continue;
 			}
 
 			if(resourceType.forestDependent)
 			{
 				resourceDictionary[resourceType] = Mathf.Clamp(
-					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[woodReference] / (float)woodReference.maxAmount)),
-					0, resourceType.maxAmount);
+					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[woodReference] / (float)woodReference.localMaxAmount)),
+					0, resourceType.localMaxAmount);
 			}
 			else
 			{
 				resourceDictionary[resourceType] = Mathf.Clamp(
-					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[resourceType] / (float)resourceType.maxAmount)),
-					0, resourceType.maxAmount);
+					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[resourceType] / (float)resourceType.localMaxAmount)),
+					0, resourceType.localMaxAmount);
 			}
 		}
+		UpdateResourceDisplay();
 	}
 
 	public float CalculateMovementCost(Tile sourceTile = null, float movementCostFactor = 1.0f)
@@ -268,6 +304,8 @@ public class Tile : PanelObject, IListener
 
 	public int HarvestResources(Resource resource, int amount)
 	{
+		// TODO: Save harvested Resources, so that Resources do not magically respawn upon leaving and reentering the Encounter Map; saved Harvests can be reset when no Player was on the Tile for some Days
+
 		int harvestedAmount = amount;
 		if(resourceDictionary[resource] >= amount)
 		{
@@ -279,9 +317,38 @@ public class Tile : PanelObject, IListener
 			resourceDictionary[resource] = 0;
 		}
 
+		if(parentTile != null)
+		{
+			parentTile.resourceDictionary[resource] -= harvestedAmount;
+			if(parentTile.resourceDictionary[resource] < 0)
+			{
+				parentTile.resourceDictionary[resource] = 0;
+			}
+		}
+
 		panelManager.QueuePanelUpdate(this);
 
+		UpdateResourceDisplay();
+
 		return harvestedAmount;
+	}
+
+	public void UpdateResourceDisplay()
+	{
+		if(fogOfWar == FogOfWar.Visible)
+		{
+			// Order of Resource Parent Children should match Resources in Resource Array
+			Transform resourceParent = transform.GetChild(2);
+			for(int i = 0; i < resourceParent.childCount; ++i)
+			{
+				Transform resourceGroup = resourceParent.GetChild(i);
+				int nodeCount = Mathf.CeilToInt(((float) resourceDictionary[resourceTypes[i]] / (float) resourceTypes[i].maxAmount) * resourceGroup.childCount);
+				for(int j = 0; j < resourceGroup.childCount; ++j)
+				{
+					resourceGroup.GetChild(j).gameObject.SetActive(j < nodeCount);
+				}
+			}
+		}
 	}
 
 	public bool IsForest()
@@ -307,6 +374,11 @@ public class Tile : PanelObject, IListener
 	public Town GetTown()
 	{
 		return town;
+	}
+
+	public Resource[] GetResourceTypes()
+	{
+		return resourceTypes;
 	}
 
 	public int GetResourceAmount(Resource resource)
@@ -340,31 +412,52 @@ public class Tile : PanelObject, IListener
 
 		if(fogOfWar == FogOfWar.Invisible)
 		{
-			if(transform.childCount > 2)
+			transform.GetChild(2).gameObject.SetActive(false);
+			if(town != null)
 			{
-				transform.GetChild(2).gameObject.SetActive(false);
+				transform.GetChild(3).gameObject.SetActive(false);
 			}
 
 			transform.GetChild(0).gameObject.SetActive(true);
 			transform.GetChild(1).gameObject.SetActive(false);
+
+			gameObject.GetComponent<Collider>().enabled = false;
 		}
-		else
+		else if(fogOfWar == FogOfWar.Partial)
 		{
-			if(transform.childCount > 2)
+			// Only enable Resource Display when no Town is present
+			if(town != null)
+			{
+				transform.GetChild(3).gameObject.SetActive(true);
+			}
+			else
 			{
 				transform.GetChild(2).gameObject.SetActive(true);
 			}
 
-			if(fogOfWar == FogOfWar.Partial)
+			transform.GetChild(0).gameObject.SetActive(false);
+			transform.GetChild(1).gameObject.SetActive(true);
+
+			gameObject.GetComponent<Collider>().enabled = true;
+		}
+		else
+		{
+			// Only enable Resource Display when no Town is present
+			if(town != null)
 			{
-				transform.GetChild(0).gameObject.SetActive(false);
-				transform.GetChild(1).gameObject.SetActive(true);
+				transform.GetChild(3).gameObject.SetActive(true);
 			}
 			else
 			{
-				transform.GetChild(0).gameObject.SetActive(false);
-				transform.GetChild(1).gameObject.SetActive(false);
+				transform.GetChild(2).gameObject.SetActive(true);
 			}
+
+			transform.GetChild(0).gameObject.SetActive(false);
+			transform.GetChild(1).gameObject.SetActive(false);
+
+			gameObject.GetComponent<Collider>().enabled = true;
+
+			UpdateResourceDisplay();
 		}
 	}
 }

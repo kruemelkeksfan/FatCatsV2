@@ -358,6 +358,12 @@ public class Player : MonoBehaviour
 			int finalHarvestedResourceAmount = tile.HarvestResources(resource, harvestedResourceAmount);
 			infoController.AddMessage("Harvested " + finalHarvestedResourceAmount + " " + resource.goodName, false, false);
 			inventory.DepositGood(collectedGood, finalHarvestedResourceAmount);
+
+			// Print Exhaustion Message here instead of in Tile.cs, because Player already has InfoController and we can better manage Message Order (Exhaustion Message should be printed after Collection message)
+			if(finalHarvestedResourceAmount >= availableResourceAmount)
+			{
+				InfoController.GetInstance().AddMessage(resource.goodName + " exhausted here!", false, true);
+			}
 		});
 	}
 
@@ -442,6 +448,11 @@ public class Player : MonoBehaviour
 	public Inventory GetInventory()
 	{
 		return inventory;
+	}
+
+	public Tile GetCurrentTile()
+	{
+		return currentTile;
 	}
 
 	public void SetPosition(Tile tile, Map currentMap = null)

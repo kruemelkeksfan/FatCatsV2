@@ -1729,10 +1729,9 @@ MonoBehaviour:
   seed: 10000
   smoothness: 50
   steepness: 8
-  forestPrefabs:
-  - {fileID: 8305162829254087946, guid: 14b613cd95dc4b54392b14e846c62735, type: 3}
   forestThreshold: 0.4
   resourceSmoothness: 50
+  oreDepositChance: 0.02
   townPrefabs:
   - {fileID: 3485394049712569528, guid: 46016129324d6604081392762736e06e, type: 3}
   maxTownCount: 20
@@ -2390,10 +2389,9 @@ MonoBehaviour:
   seed: 0
   smoothness: 50
   steepness: 8
-  forestPrefabs:
-  - {fileID: 8305162829254087946, guid: 14b613cd95dc4b54392b14e846c62735, type: 3}
   forestThreshold: 0.5
   resourceSmoothness: 50
+  oreDepositChance: 0.02
   maxEncounterMapCount: 48
   encounterMapOffset: 2000
   exitMarkerPrefab: {fileID: 5655600656926450437, guid: cf9296d1b850c6644be5028e5747a032, type: 3}

@@ -1,26 +1,53 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 
 public static class MapGenerator
 {
-	public static Map GenerateMap(int seed, int mapWidth, int mapHeight, float tileSize, float sightlineEyeHeight,
+	public static Map GenerateMap(int seed, int mapWidth, int mapHeight, float tileSize, bool encounterMap, float sightlineEyeHeight,
 		Transform[] terrainPrefabs, Transform[] terrainHeightThresholds, Material[] terrainMaterials,
 		float smoothness, float steepness,
-		Transform[] forestPrefabs, float forestThreshold,
-		float resourceSmoothness,
+		float forestThreshold, float resourceSmoothness, float oreDepositChance,
 		Town[] townPrefabs, int maxTownCount,
-		bool generateResources,
 		Transform terrainParent,
-		Transform exitMarkerPrefab,
 		TilePool tilePool,
 		float offsetX = 0, float offsetZ = 0)
 	{
+		// GENERATE DATA AND RESOURCES
+
 		// Seed Generator
 		Random.InitState(seed);
 
 		Tile[,] tiles = new Tile[mapWidth, mapHeight];
-		List<Town> towns = new List<Town>();
+		float[,,] tileResources = null;
+		List<Town> towns = null;
+		Tile mapTile = null;
+		Resource[] mapTileResources = null;
+		float[] depositChances = null;
+		if(!encounterMap)
+		{
+			tileResources = new float[mapWidth, mapHeight, 10];
+			towns = new List<Town>();
+		}
+		else
+		{
+			mapTile = Player.GetInstance().GetCurrentTile();
+			mapTileResources = mapTile.GetResourceTypes();
+
+			int encounterMapArea = mapWidth * mapHeight;
+			depositChances = new float[mapTileResources.Length];
+			for(int i = 0; i < mapTileResources.Length; ++i)
+			{
+				// Average Deposit Size ~= Max Deposit Size * 0.5
+				// Total Resource Amount ~= Average Deposit Size * Deposit Chance * Number of Tiles
+				// Deposit Chance ~= Total Resource Amount / ((Max Deposit Size * 0.5) * Number of Tiles)
+				depositChances[i] = mapTile.GetResourceAmount(mapTileResources[i]) / ((mapTileResources[i].maxDepositSize * 0.5f) * encounterMapArea);
+				if(depositChances[i] > 1.0f)
+				{
+					Debug.LogWarning((depositChances[i] * 100.0f) + "% Deposit Chance for " + mapTileResources[i].goodName + " on ne Encounter Tile!");
+				}
+			}
+		}
+
 		for(int z = 0; z < mapHeight; ++z)
 		{
 			for(int x = 0; x < mapWidth; ++x)
@@ -32,100 +59,139 @@ public static class MapGenerator
 				position += Vector3.up * height;
 				Transform tileTransform = tilePool.GetTile(terrainParent, new Vector3(offsetX, 0.0f, offsetZ) + position);
 
+				// Rotate Resource Parent
+				tileTransform.GetChild(2).Rotate(0.0f, Random.Range(0.0f, 360.0f), 0.0f);
+
 				// Generate Forests
 				float forestyness = Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (200000.0f + position.z) / resourceSmoothness));
 				bool forest = false;
-				if(forestPrefabs.Length > 0)
+				if(forestyness > forestThreshold)
 				{
-					if(forestyness > forestThreshold)
-					{
-						Transform forestTransform = GameObject.Instantiate<Transform>(forestPrefabs[0], new Vector3(offsetX + position.x, height, offsetZ + position.z), Quaternion.Euler(0.0f, Random.Range(0, 4) * 90.0f, 0.0f), tileTransform);
-						forest = true;
-					}
+					forest = true;
 				}
+
+				// Save Data
+				tiles[x, z] = tileTransform.GetComponent<Tile>();
+				tiles[x, z].InitData(new Vector2Int(x, z), "Plains", height, forest, (encounterMap ? mapTile : null));
 
 				// Generate Resources
-				float[] resources = { 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f };
-				if(generateResources)
+				if(!encounterMap)
 				{
-					resources = new float[] {
-					Mathf.Clamp01(forestyness),																															// Wood
-					Mathf.Clamp01(forestyness),																															// Berries
-					Mathf.Clamp01(forestyness),																															// Twigs
-					Mathf.Clamp01(1.0f - forestyness),																													// Herbs
-					Mathf.Clamp01(1.0f - forestyness),																													// Flax
-					Mathf.Clamp01(1.0f),																																// Stone
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (300000.0f + position.z) / resourceSmoothness)),	// Copper Ore
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (400000.0f + position.z) / resourceSmoothness)),	// Iron Ore
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (500000.0f + position.z) / resourceSmoothness)),	// Gold Ore
-					Mathf.Clamp01(Mathf.PerlinNoise((seed % 100000) + (50000.0f + position.x) / resourceSmoothness, (600000.0f + position.z) / resourceSmoothness))		// Coal
-					};
+					tileResources[x, z, 0] = Mathf.Clamp01(forestyness);                                                         // Wood
+					tileResources[x, z, 1] = Mathf.Clamp01(forestyness);                                                         // Berries
+					tileResources[x, z, 2] = Mathf.Clamp01(forestyness);                                                         // Twigs
+					tileResources[x, z, 3] = Mathf.Clamp01(1.0f - forestyness);                                                  // Herbs
+					tileResources[x, z, 4] = Mathf.Clamp01(1.0f - forestyness);                                                  // Flax
+					tileResources[x, z, 5] = Mathf.Clamp01((Random.value < oreDepositChance) ? Random.Range(0.0f, 1.0f) : 0.0f); // Stone
+					tileResources[x, z, 6] = Mathf.Clamp01((Random.value < oreDepositChance) ? Random.Range(0.0f, 1.0f) : 0.0f); // Copper Ore
+					tileResources[x, z, 7] = Mathf.Clamp01((Random.value < oreDepositChance) ? Random.Range(0.0f, 1.0f) : 0.0f); // Iron Ore
+					tileResources[x, z, 8] = Mathf.Clamp01((Random.value < oreDepositChance) ? Random.Range(0.0f, 1.0f) : 0.0f); // Gold Ore
+					tileResources[x, z, 9] = Mathf.Clamp01((Random.value < oreDepositChance) ? Random.Range(0.0f, 1.0f) : 0.0f); // Coal
 				}
-
-				tiles[x, z] = tileTransform.GetComponent<Tile>();
-				tiles[x, z].InitData(new Vector2Int(x, z), "Plains", height, forest, resources);
-
-				if(exitMarkerPrefab != null)
+				else
 				{
-					if(z == 0)
+					int[] encounterTileResources = new int[mapTileResources.Length];
+					for(int i = 0; i < mapTileResources.Length; ++i)
 					{
-						GameObject.Instantiate<Transform>(exitMarkerPrefab, new Vector3(offsetX + position.x, height + tileSize * 0.5f, offsetZ + position.z), Quaternion.Euler(0.0f, 180.0f, 0.0f), tileTransform);
+						// + 1, because Random.Range is max-exclusive
+						encounterTileResources[i] = (Random.value < depositChances[i]) ? Random.Range(0, mapTileResources[i].maxDepositSize + 1) : 0;
 					}
-					else if(z == mapHeight - 1)
-					{
-						GameObject.Instantiate<Transform>(exitMarkerPrefab, new Vector3(offsetX + position.x, height + tileSize * 0.5f, offsetZ + position.z), Quaternion.Euler(0.0f, 0.0f, 0.0f), tileTransform);
-					}
-					else if(x == 0)
-					{
-						GameObject.Instantiate<Transform>(exitMarkerPrefab, new Vector3(offsetX + position.x, height + tileSize * 0.5f, offsetZ + position.z), Quaternion.Euler(0.0f, -90.0f, 0.0f), tileTransform);
-					}
-					else if(x == mapWidth - 1)
-					{
-						GameObject.Instantiate<Transform>(exitMarkerPrefab, new Vector3(offsetX + position.x, height + tileSize * 0.5f, offsetZ + position.z), Quaternion.Euler(0.0f, 90.0f, 0.0f), tileTransform);
-					}
+					tiles[x, z].InitEncounterMapResources(encounterTileResources);
+
+					tiles[x, z].SetFogOfWar(Tile.FogOfWar.Invisible);
 				}
 			}
 		}
 
-		// Generate Towns
-		for(int i = 0; i < maxTownCount; ++i)
+		if(!encounterMap)
 		{
-			Transform tileTransform = terrainParent.GetChild(Random.Range(0, terrainParent.childCount - 1));
-			if(tileTransform.GetComponentInChildren<Town>() == null)
+			// Smooth out Ore Deposits over Neighbours after all Deposits have been placed
+			for(int z = 0; z < mapHeight; ++z)
 			{
-				Town town = GameObject.Instantiate<Town>(townPrefabs[0], new Vector3(tileTransform.position.x, tileTransform.position.y, tileTransform.position.z), Quaternion.Euler(0.0f, Random.Range(0, 4) * 90.0f, 0.0f), tileTransform);
-
-				Tile tile = tileTransform.GetComponent<Tile>();
-				if(tile.IsForest())
+				for(int x = 0; x < mapWidth; ++x)
 				{
-					tile.SetForest(false);
-					GameObject.Destroy(tileTransform.GetChild(2).gameObject);
-				}
-				tile.SetTown(town);
+					float[] maxOres = new float[4];
+					foreach(Vector2Int neighbourDirection in MathUtil.GetHexNeighbourDirections(z % 2 == 0))
+					{
+						for(int i = 0; i < maxOres.Length; ++i)
+						{
+							int neighbourX = x + neighbourDirection.x;
+							int neighbourZ = z + neighbourDirection.y;
+							if(neighbourX >= 0 && neighbourX < mapWidth
+								&& neighbourZ >= 0 && neighbourZ < mapHeight
+								&& tileResources[neighbourX, neighbourZ, 6 + i] > maxOres[i]
+								&& Random.value < 0.5f)                                         // Static Random Factor to get more irregular looking Deposits
+							{
+								maxOres[i] = tileResources[neighbourX, neighbourZ, 6 + i];
+							}
+						}
+					}
 
-				towns.Add(town);
+					tiles[x, z].InitResources(new float[]
+						{
+						tileResources[x, z, 0],																							   // Wood
+						tileResources[x, z, 1],																							   // Berries
+						tileResources[x, z, 2],																							   // Twigs
+						tileResources[x, z, 3],																							   // Herbs
+						tileResources[x, z, 4],																							   // Flax
+						((maxOres[0] > 0.0f && tileResources[x, z, 6] <= 0.0f) ? Random.Range(0.0f, maxOres[0]) : tileResources[x, z, 5]), // Stone
+						((maxOres[0] > 0.0f && tileResources[x, z, 6] <= 0.0f) ? Random.Range(0.0f, maxOres[0]) : tileResources[x, z, 6]), // Copper Ore
+						((maxOres[1] > 0.0f && tileResources[x, z, 7] <= 0.0f) ? Random.Range(0.0f, maxOres[1]) : tileResources[x, z, 7]), // Iron Ore
+						((maxOres[2] > 0.0f && tileResources[x, z, 8] <= 0.0f) ? Random.Range(0.0f, maxOres[2]) : tileResources[x, z, 8]), // Gold Ore
+						((maxOres[3] > 0.0f && tileResources[x, z, 9] <= 0.0f) ? Random.Range(0.0f, maxOres[3]) : tileResources[x, z, 9])  // Coal
+						});
+
+					tiles[x, z].SetFogOfWar(Tile.FogOfWar.Invisible);
+				}
+			}
+
+			// Generate Towns
+			for(int i = 0; i < maxTownCount; ++i)
+			{
+				Transform tileTransform = terrainParent.GetChild(Random.Range(0, terrainParent.childCount - 1));
+				if(tileTransform.GetComponentInChildren<Town>() == null)
+				{
+					// Disable Resource Parent
+					tileTransform.GetChild(2).gameObject.SetActive(false);
+
+					// Instantiate Building Prefab
+					Town town = GameObject.Instantiate<Town>(townPrefabs[0], new Vector3(tileTransform.position.x, tileTransform.position.y, tileTransform.position.z), Quaternion.Euler(0.0f, Random.Range(0, 4) * 90.0f, 0.0f), tileTransform);
+					town.gameObject.SetActive(false); // Set Town inactive, because Tiles are invisible by default
+
+					// Remove Forest
+					Tile tile = tileTransform.GetComponent<Tile>();
+					if(tile.IsForest())
+					{
+						tile.SetForest(false);
+					}
+					tile.SetTown(town);
+
+					// Add to Town List
+					towns.Add(town);
+				}
 			}
 		}
 
 		// GENERATE MAP MESH
 
 		GameObject mapModel = new GameObject("Map");
+		mapModel.GetComponent<Transform>().parent = terrainParent;
 
 		// Each Core Hexagon has 4 Tris.
 		//
-		//                       North
-		//                        ## 
-		//                     ######## 
-		//                  ####North #### 
-		//    North West ####____________#### North East
-		//               ##   \____        ##
-		//               ## West   \__East ##
-		//               ##  __________\_  ##
-		//    South West ####            #### South East
-		//                  ####South ####
-		//                     ########
-		//                        ##
-		//                       South
+		//                    North
+		//                     ## 
+		//                  ######## 
+		//               ####North #### 
+		// North West ####____________#### North East
+		//            ##   \____        ##
+		//            ## West   \__East ##
+		//            ##  __________\_  ##
+		// South West ####            #### South East
+		//               ####South ####
+		//                  ########
+		//                     ##
+		//                    South
 		//
 		// Each Inter Space has 3 Edges a 2 Tris and 2 Corner Tris.
 		// Here is an Example of a 2x3 Map. Uneven Rows (-) are assigned different Edges and Corners than even Rows (+).
@@ -179,6 +245,8 @@ public static class MapGenerator
 
 		Vector3[,,] tileCorners = new Vector3[mapWidth, mapHeight, 6];
 
+		// TODO: Add Colors when different Biomes get implemented: https://stackoverflow.com/questions/66116331/unity3d-how-to-add-textures-to-a-mesh
+
 		List<Vector3> vertices = new List<Vector3>();
 		List<Vector3> normals = new List<Vector3>();
 		List<int> triangles = new List<int>();
@@ -191,7 +259,6 @@ public static class MapGenerator
 				Vector3 position = new Vector3(x * tileSize - (z % 2 == 0 ? tileSize * 0.5f : 0.0f), 0.0f, z * tileSize);
 				float height = tiles[x, z].GetHeight();
 
-				// TODO: Slight randomization in horizontal Plane, e.g. random innerRadius between * 0.8f and * 0.9f for each Vertex
 				tileCorners[x, z, northIndex] = new Vector3(offsetX + position.x + 0.0f, height, offsetZ + position.z - outerRadius);
 				tileCorners[x, z, northEastIndex] = new Vector3(offsetX + position.x + innerRadius, height, offsetZ + position.z - halfOuterRadius);
 				tileCorners[x, z, southEastIndex] = new Vector3(offsetX + position.x + innerRadius, height, offsetZ + position.z + halfOuterRadius);
@@ -248,7 +315,7 @@ public static class MapGenerator
 				}
 			}
 		}
-			     
+
 		// Map Edges
 		int mapEdgeX = mapWidth - 1;
 		int mapEdgeZ = mapHeight - 1;

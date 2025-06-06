@@ -31,9 +31,9 @@ public class EncounterMapManager : MonoBehaviour
 	[SerializeField] private int seed = 0;
 	[SerializeField] private float smoothness = 5.0f;
 	[SerializeField] private float steepness = 2.0f;
-	[SerializeField] private Transform[] forestPrefabs = { };
 	[SerializeField] private float forestThreshold = 0.5f;
 	[SerializeField] private float resourceSmoothness = 5.0f;
+	[SerializeField] private float oreDepositChance = 0.05f;
 	[SerializeField] private int maxEncounterMapCount = 168; // 8 + 16 + 24 + 32 + 40 + 48 = 168 => 6 Layers around World Map provide Room for 168 Encounter Maps
 	[SerializeField] private float encounterMapOffset = 1000.0f;
 	[SerializeField] private Transform exitMarkerPrefab = null;
@@ -121,15 +121,12 @@ public class EncounterMapManager : MonoBehaviour
 				int seed = Mathf.RoundToInt(0.5f * (position.x + position.y) * (position.x + position.y + 1.0f) + position.y) + this.seed;
 
 				Transform terrainParent = (new GameObject("EncounterMap" + i)).GetComponent<Transform>();
-				Map encounterMap = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, sightlineEyeHeight,
+				Map encounterMap = MapGenerator.GenerateMap(seed, mapWidth, mapHeight, tileSize, true, sightlineEyeHeight,
 					terrainPrefabs, terrainHeightThresholds, terrainMaterials,
 					smoothness, steepness,
-					forestPrefabs, forestThreshold,
-					resourceSmoothness,
+					forestThreshold, resourceSmoothness, oreDepositChance,
 					null, 0,
-					false,
 					terrainParent,
-					exitMarkerPrefab,
 					tilePool,
 					offsetX, offsetY);
 
