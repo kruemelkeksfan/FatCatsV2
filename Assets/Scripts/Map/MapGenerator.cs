@@ -97,8 +97,6 @@ public static class MapGenerator
 						encounterTileResources[i] = (Random.value < depositChances[i]) ? Random.Range(0, mapTileResources[i].maxDepositSize + 1) : 0;
 					}
 					tiles[x, z].InitEncounterMapResources(encounterTileResources);
-
-					tiles[x, z].SetFogOfWar(Tile.FogOfWar.Invisible);
 				}
 			}
 		}
@@ -140,8 +138,6 @@ public static class MapGenerator
 						((maxOres[2] > 0.0f && tileResources[x, z, 8] <= 0.0f) ? Random.Range(0.0f, maxOres[2]) : tileResources[x, z, 8]), // Gold Ore
 						((maxOres[3] > 0.0f && tileResources[x, z, 9] <= 0.0f) ? Random.Range(0.0f, maxOres[3]) : tileResources[x, z, 9])  // Coal
 						});
-
-					tiles[x, z].SetFogOfWar(Tile.FogOfWar.Invisible);
 				}
 			}
 

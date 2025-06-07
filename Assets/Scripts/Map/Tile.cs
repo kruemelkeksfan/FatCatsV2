@@ -99,6 +99,8 @@ public class Tile : PanelObject, IListener
 				woodReference = resourceTypes[i];
 			}
 		}
+
+		SetFogOfWar(Tile.FogOfWar.Invisible);
 	}
 
 	public void InitEncounterMapResources(int[] resourceAmounts)
@@ -116,6 +118,8 @@ public class Tile : PanelObject, IListener
 				woodReference = resourceTypes[i];
 			}
 		}
+
+		SetFogOfWar(Tile.FogOfWar.Partial);
 	}
 
 	public override void UpdatePanel(RectTransform panel, bool add = true)
@@ -335,7 +339,7 @@ public class Tile : PanelObject, IListener
 
 	public void UpdateResourceDisplay()
 	{
-		if(fogOfWar == FogOfWar.Visible)
+		if(fogOfWar != FogOfWar.Invisible)
 		{
 			// Order of Resource Parent Children should match Resources in Resource Array
 			Transform resourceParent = transform.GetChild(2);
@@ -439,6 +443,8 @@ public class Tile : PanelObject, IListener
 			transform.GetChild(1).gameObject.SetActive(true);
 
 			gameObject.GetComponent<Collider>().enabled = true;
+
+			UpdateResourceDisplay();
 		}
 		else
 		{
