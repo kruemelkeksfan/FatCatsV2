@@ -96,8 +96,7 @@ public class Player : MonoBehaviour
 		characterActionProgressBarSize = characterActionProgressBar.sizeDelta;
 
 		// Position Buttons
-		tileInfoButton = characterPanel.GetChild(3).GetComponent<Button>();
-		zoomButton = characterPanel.GetChild(4).GetComponent<Button>();
+		zoomButton = characterPanel.GetChild(3).GetComponent<Button>();
 		zoomButton.onClick.AddListener(delegate
 		{
 			ToggleEncounter();
@@ -111,7 +110,7 @@ public class Player : MonoBehaviour
 		}
 
 		// Inventory Button
-		characterPanel.GetChild(5).GetComponent<Button>().onClick.AddListener(delegate
+		characterPanel.GetChild(4).GetComponent<Button>().onClick.AddListener(delegate
 		{
 			panelManager.OpenPanel(inventory);
 		});
@@ -470,11 +469,7 @@ public class Player : MonoBehaviour
 			currentTile = tile;
 
 			Town town = tile.GetTown();
-			tileInfoButton.onClick.RemoveAllListeners();
-			tileInfoButton.onClick.AddListener(delegate
-			{
-				panelManager.OpenPanel((town != null) ? town : tile);
-			});
+			zoomButton.gameObject.SetActive(tile.GetTown() == null); // Do not display Zoom in Button on Town Tiles
 		}
 	}
 }
