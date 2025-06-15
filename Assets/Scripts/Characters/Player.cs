@@ -454,6 +454,11 @@ public class Player : MonoBehaviour
 		return currentTile;
 	}
 
+	public Map GetCurrentMap()
+	{
+		return currentMap;
+	}
+
 	public void SetPosition(Tile tile, Map currentMap = null)
 	{
 		if(currentMap != null)

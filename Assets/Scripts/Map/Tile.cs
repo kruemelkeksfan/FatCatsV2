@@ -54,6 +54,8 @@ public class Tile : PanelObject, IListener
 	private Transform movementTargetMarker = null;
 	private Vector3 movementDirection = Vector3.zero;
 	private FogOfWar fogOfWar = FogOfWar.Visible;
+	private Vector3 initialResourceMarkerSize = Vector3.one;
+	private string currentResourceFilter = string.Empty;
 
 	private void Awake()
 	{
@@ -74,6 +76,9 @@ public class Tile : PanelObject, IListener
 		// Rotate Fog of War randomly
 		transform.GetChild(0).Rotate(0.0f, UnityEngine.Random.Range(0.0f, 360.0f), 0.0f);
 		transform.GetChild(1).Rotate(0.0f, UnityEngine.Random.Range(0.0f, 360.0f), 0.0f);
+
+		// Save Resource Marker Size
+		initialResourceMarkerSize = transform.GetChild(2).GetChild(0).localScale;
 	}
 
 	public void InitData(Vector2Int position, string biome, float height, bool forest, Tile parentTile)
@@ -337,20 +342,43 @@ public class Tile : PanelObject, IListener
 		return harvestedAmount;
 	}
 
-	public void UpdateResourceDisplay()
+	public void UpdateResourceDisplay(string resourceFilter = null)
 	{
+		if(resourceFilter != null)
+		{
+			currentResourceFilter = resourceFilter;
+		}
+
 		if(fogOfWar != FogOfWar.Invisible)
 		{
 			// Order of Resource Parent Children should match Resources in Resource Array
 			Transform resourceParent = transform.GetChild(2);
-			for(int i = 0; i < resourceParent.childCount; ++i)
+			float resourceMarkerSize = 1.0f;
+			for(int i = 0; i < resourceParent.childCount - 1; ++i)
 			{
-				Transform resourceGroup = resourceParent.GetChild(i);
-				int nodeCount = Mathf.CeilToInt(((float) resourceDictionary[resourceTypes[i]] / (float) resourceTypes[i].maxAmount) * resourceGroup.childCount);
+				Transform resourceGroup = resourceParent.GetChild(i + 1);
+				int nodeCount = Mathf.CeilToInt(((float)resourceDictionary[resourceTypes[i]] / (float)resourceTypes[i].maxAmount) * resourceGroup.childCount);
 				for(int j = 0; j < resourceGroup.childCount; ++j)
 				{
+					// Set the right Amount of Nodes active and disable the Rest
 					resourceGroup.GetChild(j).gameObject.SetActive(j < nodeCount);
 				}
+
+				if(resourceTypes[i].goodName == currentResourceFilter)
+				{
+					resourceMarkerSize = (float)resourceDictionary[resourceTypes[i]] / (float)resourceTypes[i].maxAmount;
+				}
+			}
+
+			if(currentResourceFilter != string.Empty && town == null)
+			{
+				Transform resourceMarker = resourceParent.GetChild(0);
+				resourceMarker.localScale = initialResourceMarkerSize * resourceMarkerSize;
+				resourceMarker.gameObject.SetActive(true);
+			}
+			else
+			{
+				resourceParent.GetChild(0).gameObject.SetActive(false);
 			}
 		}
 	}

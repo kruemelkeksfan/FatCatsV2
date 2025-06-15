@@ -27,22 +27,32 @@ public class Map
 		{
 			for(int x = 0; x < tiles.GetLength(0); ++x)
 			{
-				Tile tile = tiles[x, y];
-				Vector3 sightLine = tile.GetTransform().position - playerTile.GetTransform().position;
+				Vector3 sightLine = tiles[x, y].GetTransform().position - playerTile.GetTransform().position;
 				float sightLineMagnitude = sightLine.magnitude;
 				if(sightLineMagnitude < tileSize * 1.5f																					// Always show Neighbour Tiles
-					|| (sightLineMagnitude < (tileSize * tile.GetMaxVisionRange() + 1.0f)												// Never show far away Tiles
+					|| (sightLineMagnitude < (tileSize * tiles[x, y].GetMaxVisionRange() + 1.0f)										// Never show far away Tiles
 					&& !Physics.Raycast(playerTile.GetTransform().position + Vector3.up * eyeHeight, sightLine, sightLineMagnitude)))	// Show Tiles if Sightline is unobstructed
 				{
-					tile.SetFogOfWar(Tile.FogOfWar.Visible);
+					tiles[x, y].SetFogOfWar(Tile.FogOfWar.Visible);
 				}
 				else
 				{
-					if(tile.GetFogOfWar() == Tile.FogOfWar.Visible)
+					if(tiles[x, y].GetFogOfWar() == Tile.FogOfWar.Visible)
 					{
-						tile.SetFogOfWar(Tile.FogOfWar.Partial);
+						tiles[x, y].SetFogOfWar(Tile.FogOfWar.Partial);
 					}
 				}
+			}
+		}
+	}
+
+	public void UpdateResourceFilter(string resourceFilter)
+	{
+		for(int y = 0; y < tiles.GetLength(1); ++y)
+		{
+			for(int x = 0; x < tiles.GetLength(0); ++x)
+			{
+				tiles[x, y].UpdateResourceDisplay(resourceFilter);
 			}
 		}
 	}
