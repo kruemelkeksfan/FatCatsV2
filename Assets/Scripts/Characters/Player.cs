@@ -7,6 +7,8 @@ using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
+	private enum Direction { Center = 0, West = 1, NorthWest = 2, NorthEast = 3, East = 4, SouthEast = 5, SouthWest = 6 };
+
 	private struct Action
 	{
 		public delegate void EndAction();
@@ -33,31 +35,34 @@ public class Player : MonoBehaviour
 
 	[SerializeField] private string playerName = "PlayerNameHereOneDay";
 	[SerializeField] private int startingMoney = 100;
-	[SerializeField] private bool localPlayer = true;
 	private Inventory inventory = null;
 	private new Transform transform = null;
 	private new Camera camera = null;
 	private EventSystem eventSystem = null;
 	private EncounterMapManager encounterMapManager = null;
 	private List<Tile> path = null;
+	private int pathIndex = 0;
+	private float movementCostFactor = 1.0f;
+	private Vector2[] encounterTransferPoints = null;
+	private Vector2 encounterPosition = Vector2.zero; // Runs from (-0.5|-0.5) to (0.5|0.5)
+	private Vector2 encounterStartPosition = Vector2.zero;
+	private Vector2 encounterTargetPosition = Vector2.zero;
+	private Vector2 nextEncounterStartPosition = Vector2.zero;
 	private GoodManager goodManager = null;
 	private TimeController timeController = null;
 	private PanelManager panelManager = null;
 	private InfoController infoController = null;
 	private Action currentAction = new Action();
 	private bool productive = false;
-	private int pathIndex = 1;
 	private Tuple<Building, int> workplace = null;
 	private TMP_Text characterActionText = null;
 	private RectTransform characterActionProgressBar = null;
 	private Vector2 characterActionProgressBarPosition = Vector2.zero;
 	private Vector2 characterActionProgressBarSize = Vector2.one;
-	private Button tileInfoButton = null;
 	private Button zoomButton = null;
 	private bool inEncounter = false;
-	private Tile currentTile = null;
+	private Tile currentWorldTile = null;
 	private Map currentMap = null;
-	private EncounterMap encounterMap = null;
 
 	public static Player GetInstance()
 	{
@@ -81,6 +86,18 @@ public class Player : MonoBehaviour
 		panelManager = PanelManager.GetInstance();
 		infoController = InfoController.GetInstance();
 		encounterMapManager = EncounterMapManager.GetInstance();
+
+		// Calculate Encounter Entry and Exit Points
+		// Use a Circle for precise Locations, so that the Distances between the Transfer Points are realistic for every Direction
+		encounterTransferPoints = new Vector2[7];
+		encounterTransferPoints[0] = Vector2.zero;
+		for(int i = 0; i < 6; ++i)
+		{
+			encounterTransferPoints[i + 1] = new Vector2(-Mathf.Cos(i * 0.3333f * Mathf.PI), Mathf.Sin(i * 0.3333f * Mathf.PI)) * 0.5f;
+		}
+		// Set those 2 Points manually to avoid Floating Point Errors
+		encounterTransferPoints[1] = new Vector2(-0.5f, 0.0f);
+		encounterTransferPoints[4] = new Vector2(0.5f, 0.0f);
 
 		// Init Inventory
 		inventory.SetPlayer(this, false);
@@ -152,7 +169,7 @@ public class Player : MonoBehaviour
 					if(newPath != null)
 					{
 						ResetAction(true, false, false);
-						currentAction = new Action("Ready to move", 0.0, double.MaxValue, false, characterActionText, delegate
+						currentAction = new Action("Ready to move", 0.0, 0.0, false, characterActionText, delegate
 						{
 						});
 						path = newPath;
@@ -167,14 +184,6 @@ public class Player : MonoBehaviour
 							}
 							startTile.MarkMovementProgress(path[1]);
 							targetTile.MarkMovementTarget();
-
-							float eta = 0.0f;
-							float movementCostFactor = CalculateMovementCostFactor();
-							for(int i = 1; i < path.Count; ++i)
-							{
-								eta += path[i].CalculateMovementCost(path[i - 1], movementCostFactor);
-							}
-							infoController.AddMessage("Movement ETA " + (eta * 24.0f).ToString("F2") + "h", false, false);
 						}
 					}
 					else
@@ -189,8 +198,8 @@ public class Player : MonoBehaviour
 		double endTime = 0.0;
 		do
 		{
-			endTime = currentAction.duration > 0.0 ? (currentAction.startTime + currentAction.duration) : time + 1.0; // Duration of infinite Actions like Idle is 0.0 and would lead to infinite Loops
-			if(time >= endTime)
+			endTime = (currentAction.duration > 0.0) ? (currentAction.startTime + currentAction.duration) : time;
+			if(currentAction.duration > 0.0 && time >= endTime)
 			{
 				currentAction.endAction();
 				if(currentAction.repeat)
@@ -199,7 +208,7 @@ public class Player : MonoBehaviour
 				}
 				else if(currentAction.actionName == "Moving")
 				{
-					currentAction = new Action("Ready to move", 0.0, double.MaxValue, false, characterActionText, delegate
+					currentAction = new Action("Ready to move", 0.0, 0.0, false, characterActionText, delegate
 					{
 					});
 				}
@@ -214,23 +223,88 @@ public class Player : MonoBehaviour
 			{
 				if(currentAction.actionName == "Ready to move")
 				{
-					if(pathIndex < path.Count)
+					if(pathIndex < path.Count - 1)
 					{
-						currentAction = new Action("Moving", (endTime < time) ? endTime : time,
-							path[pathIndex].CalculateMovementCost(path[pathIndex - 1], CalculateMovementCostFactor()), false,
-							characterActionText,
+						movementCostFactor = CalculateMovementCostFactor();
+						float tileMovementCost = 0.0f;
+						if(!inEncounter)
+						{
+							Vector2Int tilePosition = path[pathIndex].GetPosition();
+							Vector2Int tileStep = path[pathIndex + 1].GetPosition() - tilePosition;
+							Direction exitDirection = Direction.Center;
+							Direction nextEntryDirection = Direction.Center;
+							if(tileStep.y > 0)
+							{
+								if((tilePosition.y % 2 == 0 && tileStep.x == 0) || tileStep.x > 0)
+								{
+									exitDirection = Direction.NorthEast;
+									nextEntryDirection = Direction.SouthWest;
+								}
+								else
+								{
+									exitDirection = Direction.NorthWest;
+									nextEntryDirection = Direction.SouthEast;
+								}
+							}
+							else if(tileStep.y < 0)
+							{
+								if((tilePosition.y % 2 == 0 && tileStep.x == 0) || tileStep.x > 0)
+								{
+									exitDirection = Direction.SouthEast;
+									nextEntryDirection = Direction.NorthWest;
+								}
+								else
+								{
+									exitDirection = Direction.SouthWest;
+									nextEntryDirection = Direction.NorthEast;
+								}
+							}
+							else
+							{
+								if(tileStep.x < 0)
+								{
+									exitDirection = Direction.West;
+									nextEntryDirection = Direction.East;
+								}
+								else
+								{
+									exitDirection = Direction.East;
+									nextEntryDirection = Direction.West;
+								}
+							}
+							encounterStartPosition = encounterPosition;
+							encounterTargetPosition = encounterTransferPoints[(int)exitDirection];
+							nextEncounterStartPosition = encounterTransferPoints[(int)nextEntryDirection];
+
+							tileMovementCost = path[pathIndex].CalculateMovementCost(((pathIndex >= 1) ? path[pathIndex - 1] : null), movementCostFactor, encounterPosition, encounterTargetPosition);
+						}
+						else
+						{
+							tileMovementCost = path[pathIndex].CalculateMovementCost(((pathIndex >= 1) ? path[pathIndex - 1] : null), movementCostFactor);
+						}
+
+						currentAction = new Action("Moving", endTime, tileMovementCost, false, characterActionText,
 							delegate
 							{
-								SetPosition(path[pathIndex]);
+								SetPosition(path[pathIndex + 1]);
 
-								if(localPlayer)
-								{
-									panelManager.QueueAllPanelUpdate();
-								}
+								panelManager.QueueAllPanelUpdate();
 
 								++pathIndex;
 							});
-						path[pathIndex - 1].MarkMovementProgress(path[pathIndex]);
+						path[pathIndex].MarkMovementProgress(path[pathIndex + 1]);
+
+						// Print ETA here, because we calculate the Movement Cost for the first Tile here already
+						if(pathIndex == 0)
+						{
+							// Special Treatment for first Tile Step, because it might be a lot shorter
+							float eta = tileMovementCost;
+							for(int i = 1; i < path.Count - 1; ++i)
+							{
+								eta += path[i].CalculateMovementCost(path[i - 1], movementCostFactor);
+							}
+							infoController.AddMessage("Movement ETA " + (eta * 24.0f).ToString("F2") + "h", false, false);
+						}
 					}
 					else
 					{
@@ -253,10 +327,16 @@ public class Player : MonoBehaviour
 					}
 				}
 
-				path[pathIndex - 1].UpdateMovementProgress((float)((time - currentAction.startTime) / currentAction.duration));
+				float movementProgress = (float)((time - currentAction.startTime) / currentAction.duration);
+				path[pathIndex].UpdateMovementProgress(movementProgress);
+
+				if(!inEncounter)
+				{
+					encounterPosition = Vector2.Lerp(encounterStartPosition, encounterTargetPosition, movementProgress);
+				}
 			}
 		}
-		while(endTime < time);
+		while(currentAction.duration > 0.0 && endTime < time);
 
 		if(currentAction.duration > 0.0)
 		{
@@ -277,10 +357,9 @@ public class Player : MonoBehaviour
 	public float CalculateMovementCostFactor()
 	{
 		int carryBulk = inventory.GetBulk();
-		int bulkCapacity = inventory.GetBulkCapacity();
 
 		// First Part: Go multiple Times if you exceed your Bulk Capacity, int Division to floor Number implicitely
-		float movementCostFactor = Mathf.Max(Mathf.Ceil((float)carryBulk / (float)bulkCapacity), 1.0f);
+		float movementCostFactor = Mathf.Max(Mathf.Ceil((float)carryBulk / (float)inventory.GetBulkCapacity()), 1.0f);
 		// Second Part: Linear Penalty for more Bulk, Slope of 0.01 means half Speed at 100 Bulk, can be reduced with Load Reduction Stat of Carrying Gear
 		movementCostFactor += (carryBulk * 0.01f);
 
@@ -297,7 +376,7 @@ public class Player : MonoBehaviour
 			}
 
 			path = null;
-			pathIndex = 1;
+			pathIndex = 0;
 		}
 
 		if(workplace != null)
@@ -393,7 +472,7 @@ public class Player : MonoBehaviour
 
 	public void RestartPathIfCheaper()
 	{
-		if(path != null && path[pathIndex].CalculateMovementCost(path[pathIndex - 1], CalculateMovementCostFactor()) < currentAction.duration - (timeController.GetTime() - currentAction.startTime))
+		if(path != null && CalculateMovementCostFactor() < movementCostFactor)
 		{
 			// Start over Movement to apply lower Movement Cost
 			ResetAction(false, false, true);
@@ -402,36 +481,31 @@ public class Player : MonoBehaviour
 
 	private void ToggleEncounter()
 	{
-		inEncounter = !inEncounter;
-
 		ResetAction(true, false, true);
 
-		if(encounterMap != null)
-		{
-			encounterMapManager.ExitEncounterMap(this, encounterMap, currentTile);
-			encounterMap = null;
-		}
+		inEncounter = !inEncounter;
 
 		TMP_Text zoomButtonText = zoomButton.GetComponentInChildren<TMP_Text>();
-		if(inEncounter)
+		if(!inEncounter)
+		{
+			zoomButtonText.text = "Zoom In";
+
+			encounterMapManager.ExitEncounterMap(this, (EncounterMap)currentMap, currentWorldTile);
+		}
+		else
 		{
 			zoomButtonText.text = "Zoom Out";
 
 			List<Player> players = new List<Player>(1);
 			players.Add(this);
-			encounterMap = encounterMapManager.EnterEncounterMap(players, currentTile.GetPosition()); // Side Effect: this Method also sets currentMap via SetPosition()
-		}
-		else
-		{
-			zoomButtonText.text = "Zoom In";
-
-			currentMap = MapManager.GetInstance().GetMap();
+			encounterMapManager.EnterEncounterMap(players, currentWorldTile.GetPosition()); // Side Effect: this Method also sets currentMap via SetPosition()
 		}
 	}
 
 	public bool IsLocalPlayer()
 	{
-		return localPlayer;
+		// Remote Players get their own Class
+		return true;
 	}
 
 	public bool IsProductive()
@@ -449,14 +523,19 @@ public class Player : MonoBehaviour
 		return inventory;
 	}
 
-	public Tile GetCurrentTile()
+	public Tile GetCurrentWorldTile()
 	{
-		return currentTile;
+		return currentWorldTile;
 	}
 
 	public Map GetCurrentMap()
 	{
 		return currentMap;
+	}
+
+	public Vector2 GetEncounterPosition()
+	{
+		return encounterPosition;
 	}
 
 	public void SetPosition(Tile tile, Map currentMap = null)
@@ -469,12 +548,27 @@ public class Player : MonoBehaviour
 		transform.SetParent(tile.GetTransform(), false);
 		this.currentMap.UpdateFogOfWar(tile);
 
-		if(!inEncounter)
+		// Only update Encounter Position during Movement, not during Zooming in and out
+		if(currentMap == null)
 		{
-			currentTile = tile;
+			if(!inEncounter)
+			{
+				currentWorldTile = tile;
 
-			Town town = tile.GetTown();
-			zoomButton.gameObject.SetActive(tile.GetTown() == null); // Do not display Zoom in Button on Town Tiles
+				Town town = tile.GetTown();
+				zoomButton.gameObject.SetActive(tile.GetTown() == null); // Do not display Zoom in Button on Town Tiles
+
+				encounterPosition = nextEncounterStartPosition;
+			}
+			else
+			{
+				// TODO: Implement Button to zoom out and change Overworld Map Tile when reaching Map Edge (Maybe below Zoom Out Button?)
+
+				Vector2Int tilePosition = tile.GetPosition();
+				Vector2Int mapSize = this.currentMap.GetMapSize();
+				// mapSize - 1 because we want to utilize the full encounterPosition Range from -0.5 to +0.5, without -1 we would only get to +0.4999
+				encounterPosition = new Vector2(Mathf.Clamp01((float)tilePosition.x / (mapSize.x - 1.0f)) - 0.5f, Mathf.Clamp01((float)tilePosition.y / (mapSize.y - 1.0f)) - 0.5f);
+			}
 		}
 	}
 }

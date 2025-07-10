@@ -1,5 +1,7 @@
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.UIElements;
 
 public static class MapGenerator
 {
@@ -30,7 +32,7 @@ public static class MapGenerator
 		}
 		else
 		{
-			mapTile = Player.GetInstance().GetCurrentTile();
+			mapTile = Player.GetInstance().GetCurrentWorldTile();
 			mapTileResources = mapTile.GetResourceTypes();
 
 			int encounterMapArea = mapWidth * mapHeight;
@@ -43,7 +45,7 @@ public static class MapGenerator
 				depositChances[i] = mapTile.GetResourceAmount(mapTileResources[i]) / ((mapTileResources[i].maxDepositSize * 0.5f) * encounterMapArea);
 				if(depositChances[i] > 1.0f)
 				{
-					Debug.LogWarning((depositChances[i] * 100.0f) + "% Deposit Chance for " + mapTileResources[i].goodName + " on ne Encounter Tile!");
+					Debug.LogWarning((depositChances[i] * 100.0f) + "% Deposit Chance for " + mapTileResources[i].goodName + " on Encounter Tile, consider increasing Deposit Size or increasing Map Size!");
 				}
 			}
 		}
@@ -74,7 +76,7 @@ public static class MapGenerator
 				tiles[x, z] = tileTransform.GetComponent<Tile>();
 				tiles[x, z].InitData(new Vector2Int(x, z), "Plains", height, forest, (encounterMap ? mapTile : null));
 
-				// Generate Resources
+				// Generate Resources and Exit Markers
 				if(!encounterMap)
 				{
 					tileResources[x, z, 0] = Mathf.Clamp01(forestyness);                                                         // Wood
@@ -96,7 +98,20 @@ public static class MapGenerator
 						// + 1, because Random.Range is max-exclusive
 						encounterTileResources[i] = (Random.value < depositChances[i]) ? Random.Range(0, mapTileResources[i].maxDepositSize + 1) : 0;
 					}
-					tiles[x, z].InitEncounterMapResources(encounterTileResources);
+
+					// Determine Exit Marker Existence and Rotation
+					float? exitMarkerAngle = null;
+					if(x <= 0 || x >= mapWidth - 1 || z <= 0 || z >= mapHeight - 1)
+					{
+						// Get Exit Marker Angle, 0° is defined as "to the left", because at the left 0° is aligned with an Exit Direction, "upward" is not aligned with a Neighbour Tile
+						exitMarkerAngle = Vector2.SignedAngle(new Vector2(x - mapWidth * 0.5f, z - mapHeight * 0.5f), Vector2.left);
+						// Round Angle to the next 30°
+						exitMarkerAngle = Mathf.Round(exitMarkerAngle.Value / 60.0f) * 60.0f;
+						// Rotate Angle to 0° defined as "upward", because Unity defines Rotations that Way
+						exitMarkerAngle -= 90.0f;
+					}
+
+					tiles[x, z].InitEncounterMapResources(encounterTileResources, exitMarkerAngle);
 				}
 			}
 		}

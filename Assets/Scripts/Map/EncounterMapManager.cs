@@ -44,6 +44,7 @@ public class EncounterMapManager : MonoBehaviour
 	private InfoController infoController = null;
 	private TilePool tilePool = null;
 	private List<EncounterMap> encounterMaps = null;
+	private Map map = null;
 
 	public static EncounterMapManager GetInstance()
 	{
@@ -58,6 +59,8 @@ public class EncounterMapManager : MonoBehaviour
 
 		tilePool = new TilePool(minTileReserve, maxTileReserve, tilesPerUpdate, terrainPrefabs[0]);
 		encounterMaps = new List<EncounterMap>(maxEncounterMapCount);
+
+		map = MapManager.GetInstance().GetMap();
 
 		/*for(int i = 0; i < maxEncounterMapCount; ++i)
 		{
@@ -134,8 +137,12 @@ public class EncounterMapManager : MonoBehaviour
 
 				foreach(Player player in players)
 				{
-					UnityEngine.Random.InitState(player.GetPlayerName().GetHashCode() + seed);
-					player.SetPosition(encounterMap.tiles[UnityEngine.Random.Range(0, encounterMap.tiles.GetLength(0)), UnityEngine.Random.Range(0, encounterMap.tiles.GetLength(1))], encounterMaps[i]);
+					// TODO: Prevent multiple Units from occupying the same Tile
+
+					Vector2 playerPosition = player.GetEncounterPosition();
+					int spawnX = Mathf.RoundToInt((playerPosition.x + 0.5f) * (encounterMap.tiles.GetLength(0) - 1));
+					int spawnY = Mathf.RoundToInt((playerPosition.y + 0.5f) * (encounterMap.tiles.GetLength(1) - 1));
+					player.SetPosition(encounterMap.tiles[spawnX, spawnY], encounterMaps[i]);
 				}
 
 				return encounterMaps[i];
@@ -151,7 +158,7 @@ public class EncounterMapManager : MonoBehaviour
 		// TODO: Allow Exit only if Player is at Map Edge and escape to next Tile
 		// TODO: Alternatively allow Exit to Tile Center anywhere if out of Combat
 
-		player.SetPosition(mapTile);
+		player.SetPosition(mapTile, map);
 		
 		encounterMap.players.Remove(player);
 		if(encounterMap.players.Count <= 0)
@@ -164,5 +171,10 @@ public class EncounterMapManager : MonoBehaviour
 			encounterMaps[encounterMap.encounterMapIndex] = null;
 			GameObject.Destroy(encounterMap.terrainParent.gameObject);
 		}
+	}
+
+	public float GetTileSize()
+	{
+		return tileSize;
 	}
 }

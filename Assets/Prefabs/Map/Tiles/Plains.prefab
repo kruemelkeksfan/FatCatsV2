@@ -632,6 +632,7 @@ MonoBehaviour:
     tool: 12
     baseYieldPerHour: 5
   resourceEntryPrefab: {fileID: 7022509754344602647, guid: 613a7fc77f9655048bfd975de2e79bb2, type: 3}
+  exitMarkerPrefab: {fileID: 0}
   movementPathMarkerPrefab: {fileID: 7680133081360683367, guid: d1ccb2bd232d6c848a7bf34a675590bb, type: 3}
   movementProgressMarkerPrefab: {fileID: 1475875072955306277, guid: a0aecb5cc6bc5044e8e5459448e48860, type: 3}
   movementTargetMarkerPrefab: {fileID: 5655600656926450437, guid: 6a66eadd54b0b964b8456bca77b1aff6, type: 3}

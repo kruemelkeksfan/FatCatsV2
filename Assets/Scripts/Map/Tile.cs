@@ -30,6 +30,7 @@ public class Tile : PanelObject, IListener
 
 	[SerializeField] private Resource[] resourceTypes = { };
 	[SerializeField] private RectTransform resourceEntryPrefab = null;
+	[SerializeField] private Transform exitMarkerPrefab = null;
 	[SerializeField] private Transform movementPathMarkerPrefab = null;
 	[SerializeField] private Transform movementProgressMarkerPrefab = null;
 	[SerializeField] private Transform movementTargetMarkerPrefab = null;
@@ -108,7 +109,7 @@ public class Tile : PanelObject, IListener
 		SetFogOfWar(Tile.FogOfWar.Invisible);
 	}
 
-	public void InitEncounterMapResources(int[] resourceAmounts)
+	public void InitEncounterMapResources(int[] resourceAmounts, float? exitMarkerAngle)
 	{
 		resourceDictionary = new Dictionary<Resource, int>(resourceTypes.Length);
 		for(int i = 0; i < resourceTypes.Length; ++i)
@@ -122,6 +123,11 @@ public class Tile : PanelObject, IListener
 			{
 				woodReference = resourceTypes[i];
 			}
+		}
+
+		if(exitMarkerAngle.HasValue)
+		{
+			GameObject.Instantiate<Transform>(exitMarkerPrefab, transform.position, Quaternion.Euler(0.0f, exitMarkerAngle.Value, 0.0f), transform);
 		}
 
 		SetFogOfWar(Tile.FogOfWar.Partial);
@@ -217,7 +223,7 @@ public class Tile : PanelObject, IListener
 		UpdateResourceDisplay();
 	}
 
-	public float CalculateMovementCost(Tile sourceTile = null, float movementCostFactor = 1.0f)
+	public float CalculateMovementCost(Tile sourceTile = null, float movementCostFactor = 1.0f, Vector2? startPosition = null, Vector2? targetPosition = null)
 	{
 		// Source for Approximate Movement Costs: https://traildweller.com/hiking-time-calculator/
 		float movementCost = baseMovementCost + (height * heightMovementCostFactor);
@@ -237,6 +243,11 @@ public class Tile : PanelObject, IListener
 		}
 
 		movementCost *= movementCostFactor;
+
+		if(startPosition != null && targetPosition != null)
+		{
+			movementCost *= Mathf.Max((targetPosition.Value - startPosition.Value).magnitude, 0.0001f);
+		}
 
 		return movementCost;
 	}

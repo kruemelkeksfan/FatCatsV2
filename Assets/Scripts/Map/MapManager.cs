@@ -66,6 +66,11 @@ public class Map
 
 		return null;
 	}
+
+	public Vector2Int GetMapSize()
+	{
+		return new Vector2Int(tiles.GetLength(0), tiles.GetLength(1));
+	}
 }
 
 [Serializable]

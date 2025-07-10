@@ -17,6 +17,10 @@ PrefabInstance:
       value: 0.001
       objectReference: {fileID: 0}
     - target: {fileID: 1826050145981729418, guid: f3a03e0419c2a5a45ab1d6914c097d11, type: 3}
+      propertyPath: exitMarkerPrefab
+      value: 
+      objectReference: {fileID: 5655600656926450437, guid: cf9296d1b850c6644be5028e5747a032, type: 3}
+    - target: {fileID: 1826050145981729418, guid: f3a03e0419c2a5a45ab1d6914c097d11, type: 3}
       propertyPath: heightMovementCostFactor
       value: 0.00005
       objectReference: {fileID: 0}
