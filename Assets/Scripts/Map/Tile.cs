@@ -47,7 +47,7 @@ public class Tile : PanelObject, IListener
 	private Tile parentTile = null;
 	private Town town = null;
 	private bool forest = true;
-	private Dictionary<Resource, int> resourceDictionary = null;
+	private Dictionary<string, int> resourceDictionary = null;
 	private Resource woodReference = new Resource();
 	private new Transform transform = null;
 	private Transform movementPathMarker = null;
@@ -93,12 +93,12 @@ public class Tile : PanelObject, IListener
 
 	public void InitResources(float[] resourceAmountFactors)
 	{
-		resourceDictionary = new Dictionary<Resource, int>(resourceTypes.Length);
+		resourceDictionary = new Dictionary<string, int>(resourceTypes.Length);
 		for(int i = 0; i < resourceTypes.Length; ++i)
 		{
 			resourceTypes[i].localMaxAmount = Mathf.FloorToInt(resourceAmountFactors[i] * resourceTypes[i].maxAmount);
 			resourceTypes[i].baseYieldPerHour *= ((float)resourceTypes[i].localMaxAmount) / ((float)resourceTypes[i].maxAmount);
-			resourceDictionary.Add(resourceTypes[i], resourceTypes[i].localMaxAmount);
+			resourceDictionary.Add(resourceTypes[i].goodName, resourceTypes[i].localMaxAmount);
 
 			if(i == 0)
 			{
@@ -111,13 +111,13 @@ public class Tile : PanelObject, IListener
 
 	public void InitEncounterMapResources(int[] resourceAmounts, float? exitMarkerAngle)
 	{
-		resourceDictionary = new Dictionary<Resource, int>(resourceTypes.Length);
+		resourceDictionary = new Dictionary<string, int>(resourceTypes.Length);
 		for(int i = 0; i < resourceTypes.Length; ++i)
 		{
 			resourceTypes[i].maxAmount = resourceTypes[i].maxDepositSize;
 			resourceTypes[i].localMaxAmount = resourceAmounts[i];
 			resourceTypes[i].baseYieldPerHour *= ((float)resourceTypes[i].localMaxAmount) / ((float)resourceTypes[i].maxAmount);
-			resourceDictionary.Add(resourceTypes[i], resourceTypes[i].localMaxAmount);
+			resourceDictionary.Add(resourceTypes[i].goodName, resourceTypes[i].localMaxAmount);
 
 			if(i == 0)
 			{
@@ -144,7 +144,7 @@ public class Tile : PanelObject, IListener
 		// TODO: Show Estimations instead of real Amounts (Estimation Accuracy based on Foragng Skill)
 		// TODO: Show last (visible) Estimation when Tile is partially visible
 		int i = 0;
-		foreach(Resource resourceType in resourceTypes)
+		foreach(Resource resource in resourceTypes)
 		{
 			RectTransform resourceEntry;
 			if(i < resourceParent.childCount)
@@ -157,9 +157,9 @@ public class Tile : PanelObject, IListener
 				resourceEntry.anchoredPosition = new Vector2(resourceEntry.anchoredPosition.x, -resourceEntry.sizeDelta.y * i);
 			}
 
-			resourceEntry.GetChild(0).GetComponent<TMP_Text>().text = resourceType.goodName;
-			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceDictionary[resourceType].ToString();
-			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resourceType.localMaxAmount;
+			resourceEntry.GetChild(0).GetComponent<TMP_Text>().text = resource.goodName;
+			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceDictionary[resource.goodName].ToString();
+			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resource.localMaxAmount;
 			Player player = null;
 			if(parentTile != null && (player = gameObject.GetComponentInChildren<Player>()) != null) // TODO: After Multiplayer Implementation check, if this is the local Player
 			{
@@ -167,10 +167,10 @@ public class Tile : PanelObject, IListener
 				collectButton.gameObject.SetActive(true);
 
 				collectButton.onClick.RemoveAllListeners();
-				Resource localResourceType = resourceType;
+				Resource localResource = resource;
 				collectButton.onClick.AddListener(delegate
 				{
-					player.CollectResources(localResourceType, this, player.GetInventory());
+					player.CollectResources(localResource, this, player.GetInventory());
 				});
 			}
 			else
@@ -199,25 +199,25 @@ public class Tile : PanelObject, IListener
 		// Only called on Overworld Map Tiles, Listener is not set up for Encounter Map Tiles
 
 		// Update Resources
-		foreach(Resource resourceType in resourceTypes)
+		foreach(Resource resource in resourceTypes)
 		{
-			if(resourceType.localMaxAmount <= 0)
+			if(resource.localMaxAmount <= 0)
 			{
 
 				continue;
 			}
 
-			if(resourceType.forestDependent)
+			if(resource.forestDependent)
 			{
-				resourceDictionary[resourceType] = Mathf.Clamp(
-					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[woodReference] / (float)woodReference.localMaxAmount)),
-					0, resourceType.localMaxAmount);
+				resourceDictionary[resource.goodName] = Mathf.Clamp(
+					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary["Wood"] / (float)woodReference.localMaxAmount)),
+					0, resource.localMaxAmount);
 			}
 			else
 			{
-				resourceDictionary[resourceType] = Mathf.Clamp(
-					resourceDictionary[resourceType] + Mathf.RoundToInt(resourceType.maxGrowthAmount * ((float)resourceDictionary[resourceType] / (float)resourceType.localMaxAmount)),
-					0, resourceType.localMaxAmount);
+				resourceDictionary[resource.goodName] = Mathf.Clamp(
+					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary[resource.goodName] / (float)resource.localMaxAmount)),
+					0, resource.localMaxAmount);
 			}
 		}
 		UpdateResourceDisplay();
@@ -322,7 +322,7 @@ public class Tile : PanelObject, IListener
 		}
 	}
 
-	public int HarvestResources(Resource resource, int amount)
+	public int HarvestResources(string resource, int amount)
 	{
 		// TODO: Save harvested Resources, so that Resources do not magically respawn upon leaving and reentering the Encounter Map; saved Harvests can be reset when no Player was on the Tile for some Days
 
@@ -368,7 +368,7 @@ public class Tile : PanelObject, IListener
 			for(int i = 0; i < resourceParent.childCount - 1; ++i)
 			{
 				Transform resourceGroup = resourceParent.GetChild(i + 1);
-				int nodeCount = Mathf.CeilToInt(((float)resourceDictionary[resourceTypes[i]] / (float)resourceTypes[i].maxAmount) * resourceGroup.childCount);
+				int nodeCount = Mathf.CeilToInt(((float)resourceDictionary[resourceTypes[i].goodName] / (float)resourceTypes[i].maxAmount) * resourceGroup.childCount);
 				for(int j = 0; j < resourceGroup.childCount; ++j)
 				{
 					// Set the right Amount of Nodes active and disable the Rest
@@ -377,7 +377,7 @@ public class Tile : PanelObject, IListener
 
 				if(resourceTypes[i].goodName == currentResourceFilter)
 				{
-					resourceMarkerSize = (float)resourceDictionary[resourceTypes[i]] / (float)resourceTypes[i].maxAmount;
+					resourceMarkerSize = (float)resourceDictionary[resourceTypes[i].goodName] / (float)resourceTypes[i].maxAmount;
 				}
 			}
 
@@ -424,7 +424,7 @@ public class Tile : PanelObject, IListener
 		return resourceTypes;
 	}
 
-	public int GetResourceAmount(Resource resource)
+	public int GetResourceAmount(string resource)
 	{
 		return resourceDictionary[resource];
 	}

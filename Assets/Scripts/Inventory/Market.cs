@@ -35,7 +35,7 @@ public class Market : PanelObject
 
 	[SerializeField] private RectTransform marketEntryPrefab = null;
 	private Dictionary<Good, MarketOffer> offers = null;
-	private Town town = null;
+	private PopulationController populationController = null;
 	private string townName = "Unknown Town";
 
 	private void Awake()
@@ -47,8 +47,9 @@ public class Market : PanelObject
 	{
 		base.Start();
 
-		town = gameObject.GetComponent<Town>();
-		townName = town.GetTownName();
+		populationController = gameObject.GetComponent<PopulationController>();
+
+		townName = gameObject.GetComponent<Town>().GetTownName();
 	}
 
 	public override void UpdatePanel(RectTransform panel, bool add = true)
@@ -65,9 +66,9 @@ public class Market : PanelObject
 
 		RectTransform townStatPanel = (RectTransform)panel.GetChild(1);
 
-		townStatPanel.GetChild(1).GetComponent<TMP_Text>().text = town.GetTotalPopulation().ToString();
-		townStatPanel.GetChild(3).GetComponent<TMP_Text>().text = town.CalculateAverageIncome().ToString();
-		townStatPanel.GetChild(5).GetComponent<TMP_Text>().text = town.CalculateAverageSavings().ToString();
+		townStatPanel.GetChild(1).GetComponent<TMP_Text>().text = populationController.GetTotalPopulation().ToString();
+		townStatPanel.GetChild(3).GetComponent<TMP_Text>().text = populationController.CalculateAverageIncome().ToString();
+		townStatPanel.GetChild(5).GetComponent<TMP_Text>().text = populationController.CalculateAverageSavings().ToString();
 
 		RectTransform marketContentParent = (RectTransform)panel.GetChild(2).GetChild(0).GetChild(0);
 

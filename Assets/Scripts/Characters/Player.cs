@@ -414,7 +414,7 @@ public class Player : MonoBehaviour
 		{
 			Good collectedGood = new Good(goodManager.GetGoodData(resource.goodName), 1.0f, 1.0f, collector);   // TODO: Add real Quality and perceived Quality based on Skills
 
-			int availableResourceAmount = tile.GetResourceAmount(resource);
+			int availableResourceAmount = tile.GetResourceAmount(resource.goodName);
 
 			float baseHoursPerYield = 1 / resource.baseYieldPerHour;
 			float time = 0.0f;
@@ -433,7 +433,7 @@ public class Player : MonoBehaviour
 				time += hoursPerYield;
 			}
 
-			int finalHarvestedResourceAmount = tile.HarvestResources(resource, harvestedResourceAmount);
+			int finalHarvestedResourceAmount = tile.HarvestResources(resource.goodName, harvestedResourceAmount);
 			infoController.AddMessage("Harvested " + finalHarvestedResourceAmount + " " + resource.goodName, false, false);
 			inventory.DepositGood(collectedGood, finalHarvestedResourceAmount);
 

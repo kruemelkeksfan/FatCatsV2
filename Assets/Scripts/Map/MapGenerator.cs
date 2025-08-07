@@ -42,7 +42,7 @@ public static class MapGenerator
 				// Average Deposit Size ~= Max Deposit Size * 0.5
 				// Total Resource Amount ~= Average Deposit Size * Deposit Chance * Number of Tiles
 				// Deposit Chance ~= Total Resource Amount / ((Max Deposit Size * 0.5) * Number of Tiles)
-				depositChances[i] = mapTile.GetResourceAmount(mapTileResources[i]) / ((mapTileResources[i].maxDepositSize * 0.5f) * encounterMapArea);
+				depositChances[i] = mapTile.GetResourceAmount(mapTileResources[i].goodName) / ((mapTileResources[i].maxDepositSize * 0.5f) * encounterMapArea);
 				if(depositChances[i] > 1.0f)
 				{
 					Debug.LogWarning((depositChances[i] * 100.0f) + "% Deposit Chance for " + mapTileResources[i].goodName + " on Encounter Tile, consider increasing Deposit Size or increasing Map Size!");

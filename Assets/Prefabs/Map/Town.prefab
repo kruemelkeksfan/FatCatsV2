@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 3485394049712569528}
   - component: {fileID: 4811585615747019209}
   - component: {fileID: 7861051965595649646}
+  - component: {fileID: 6373789344028582501}
   - component: {fileID: 8301208982883198931}
   m_Layer: 0
   m_Name: Town
@@ -130,39 +131,10 @@ MonoBehaviour:
   m_GameObject: {fileID: 2977084469190450195}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 61d84f962d94f2a488f731de94d28e10, type: 3}
+  m_Script: {fileID: 11500000, guid: 142f9b1f3fbc5fb44918285c2fe47f1f, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   panelObjectType: 1
-  startingPopulation: 10
-  startingMoney: 100
-  maxPopulationGainFactor: 0.2
-  needData:
-  - goodCategory: 2
-    budgetPercentage: 0.2
-    minBuyAmount: 3
-    maxBuyAmount: 5
-    essential: 1
-  - goodCategory: 7
-    budgetPercentage: 0.2
-    minBuyAmount: 1
-    maxBuyAmount: 2
-    essential: 1
-  - goodCategory: 3
-    budgetPercentage: 0.3
-    minBuyAmount: 0.1
-    maxBuyAmount: 1
-    essential: 1
-  - goodCategory: 4
-    budgetPercentage: 0.1
-    minBuyAmount: 0.1
-    maxBuyAmount: 1
-    essential: 0
-  - goodCategory: 1
-    budgetPercentage: 0.2
-    minBuyAmount: 0.1
-    maxBuyAmount: 5
-    essential: 0
 --- !u!114 &4811585615747019209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -197,6 +169,47 @@ MonoBehaviour:
   newBuildingEntryPrefab: {fileID: 7831948913894517023, guid: 3ecc8e9300e84334f876aedcccc375fd, type: 3}
   jobEntryPrefab: {fileID: 7022509754344602647, guid: 4013d66f17363954bbcb656934704ceb, type: 3}
   warehouseInventoryPrefab: {fileID: 4307853699895608301, guid: edff4445a7aa4834393f1f053ee31859, type: 3}
+--- !u!114 &6373789344028582501
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2977084469190450195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 37251aaae1f064e43a040608563e5bee, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  needData:
+  - goodCategory: 2
+    budgetPercentage: 0.2
+    minBuyAmount: 3
+    maxBuyAmount: 5
+    essential: 1
+  - goodCategory: 7
+    budgetPercentage: 0.2
+    minBuyAmount: 1
+    maxBuyAmount: 2
+    essential: 1
+  - goodCategory: 3
+    budgetPercentage: 0.3
+    minBuyAmount: 0.1
+    maxBuyAmount: 1
+    essential: 1
+  - goodCategory: 4
+    budgetPercentage: 0.1
+    minBuyAmount: 0.1
+    maxBuyAmount: 1
+    essential: 0
+  - goodCategory: 1
+    budgetPercentage: 0.2
+    minBuyAmount: 0.1
+    maxBuyAmount: 5
+    essential: 0
+  startingPopulation: 10
+  maxPopulationGainFactor: 0.2
+  startingMoney: 10
 --- !u!65 &8301208982883198931
 BoxCollider:
   m_ObjectHideFlags: 0

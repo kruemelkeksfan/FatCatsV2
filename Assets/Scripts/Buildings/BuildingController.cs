@@ -23,7 +23,7 @@ public class BuildingController : PanelObject
 	private int currentBuildingStyle = 0;
 	private List<Building> buildings = null;
 	private Dictionary<Building, ConstructionSite> constructionSites = null;
-	private Town town = null;
+	private PopulationController populationController = null;
 	private string townName = "Unknown Town";
 	private Dictionary<int, List<Tuple<int, int>>> jobsByWage = null;
 	private Dictionary<string, Inventory> warehouseInventories = null;
@@ -84,7 +84,7 @@ public class BuildingController : PanelObject
 	private void Awake()
 	{
 		transform = gameObject.GetComponent<Transform>();
-		town = gameObject.GetComponent<Town>();
+		populationController = gameObject.GetComponent<PopulationController>();
 
 		buildings = new List<Building>();
 		constructionSites = new Dictionary<Building, ConstructionSite>();
@@ -99,7 +99,7 @@ public class BuildingController : PanelObject
 		buildingManager = BuildingManager.GetInstance();
 		goodManager = GoodManager.GetInstance();
 		availableBuildingStyles = buildingManager.GetBuildingStyles();
-		townName = town.GetTownName();
+		townName = gameObject.GetComponent<Town>().GetTownName();
 		infoController = InfoController.GetInstance();
 	}
 
@@ -122,8 +122,8 @@ public class BuildingController : PanelObject
 
 		panel.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = "Buildings - " + townName;
 
-		panel.GetChild(2).GetComponent<TMP_Text>().text = town.GetUnemployedPopulation() + "/" + town.GetTotalPopulation();
-		panel.GetChild(4).GetComponent<TMP_Text>().text = town.CalculateAverageIncome() + "G";
+		panel.GetChild(2).GetComponent<TMP_Text>().text = populationController.GetUnemployedPopulation() + "/" + populationController.GetTotalPopulation();
+		panel.GetChild(4).GetComponent<TMP_Text>().text = populationController.CalculateAverageIncome() + "G";
 
 		RectTransform buildingsParent = (RectTransform)panel.GetChild(5).GetChild(0).GetChild(0);
 
@@ -514,7 +514,7 @@ public class BuildingController : PanelObject
 				wageAmountField.onEndEdit.AddListener(delegate
 				{
 					int amount = wageAmountField.text != string.Empty ? Mathf.Max(Int32.Parse(wageAmountField.text), 1) : 1;
-					if(town.ChangeIncome(buildings[buildingId].jobs[localI].wage, amount, buildings[buildingId].jobs[localI].townWorkers))
+					if(populationController.ChangeIncome(buildings[buildingId].jobs[localI].wage, amount, buildings[buildingId].jobs[localI].townWorkers))
 					{
 						buildings[buildingId].jobs[localI].wage = amount;
 
@@ -560,7 +560,7 @@ public class BuildingController : PanelObject
 
 					if(buildings[localBuildingId].jobs[localI].townWorkers + buildings[localBuildingId].jobs[localI].playerWorkers.Count > buildings[localBuildingId].jobs[localI].wantedWorkers)
 					{
-						town.Fire(buildings[localBuildingId].jobs[localI].wage, 1);
+						populationController.Fire(buildings[localBuildingId].jobs[localI].wage, 1);
 						buildings[localBuildingId].jobs[localI].townWorkers -= 1;
 					}
 
@@ -666,7 +666,7 @@ public class BuildingController : PanelObject
 				int wantedTownWorkerCount = buildings[i].jobs[j].wantedWorkers - buildings[i].jobs[j].playerWorkers.Count;
 				if(buildings[i].jobs[j].townWorkers > wantedTownWorkerCount)
 				{
-					town.Fire(buildings[i].jobs[j].wage, buildings[i].jobs[j].townWorkers - wantedTownWorkerCount);
+					populationController.Fire(buildings[i].jobs[j].wage, buildings[i].jobs[j].townWorkers - wantedTownWorkerCount);
 					buildings[i].jobs[j].townWorkers = wantedTownWorkerCount;
 				}
 				if(buildings[i].jobs[j].wantedWorkers <= 0)
@@ -689,7 +689,7 @@ public class BuildingController : PanelObject
 				{
 					fired = true;
 
-					town.Fire(buildings[i].jobs[j].wage, buildings[i].jobs[j].townWorkers);
+					populationController.Fire(buildings[i].jobs[j].wage, buildings[i].jobs[j].townWorkers);
 					buildings[i].jobs[j].townWorkers = 0;
 					buildings[i].jobs[j].wantedWorkers = 0;
 				}
@@ -705,7 +705,7 @@ public class BuildingController : PanelObject
 					if(producedItems < minProducedItems)
 					{
 						minProducedItems = producedItems;
-						infoController.AddMessage("Not enough " + resourceInput.Item1 + " in " + town.GetTownName() + "!", true, true);
+						infoController.AddMessage("Not enough " + resourceInput.Item1 + " in " + townName + "!", true, true);
 					}
 				}
 
@@ -751,18 +751,18 @@ public class BuildingController : PanelObject
 				if(buildings[i].quality <= Mathf.Epsilon)
 				{
 					buildingsToDestroy.Add(buildings[i]);
-					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + town.GetTownName() + " withered away!", true, true);
+					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " withered away!", true, true);
 				}
 				else if(buildings[i].quality <= 0.01f && !buildings[i].decayWarningIssued)
 				{
-					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + town.GetTownName() + " is in bad Condition!", true, false);
+					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " is in bad Condition!", true, false);
 					buildings[i].decayWarningIssued = true;
 				}
 			}
 		}
 		if(fired)
 		{
-			infoController.AddMessage("Unable to pay Workers in " + town.GetTownName() + "!", true, true);
+			infoController.AddMessage("Unable to pay Workers in " + townName + "!", true, true);
 		}
 		foreach(Building building in buildingsToDestroy)
 		{
@@ -846,7 +846,7 @@ public class BuildingController : PanelObject
 				}
 			}
 		}
-		Tuple<Dictionary<Tuple<int, int>, int>, Dictionary<int, int>> hireFireLists = town.UpdateJobMarket(openPositions);
+		Tuple<Dictionary<Tuple<int, int>, int>, Dictionary<int, int>> hireFireLists = populationController.UpdateJobMarket(openPositions);
 		foreach(KeyValuePair<int, int> firePosition in hireFireLists.Item2)
 		{
 			int peopleLeftToFire = firePosition.Value;
@@ -928,7 +928,7 @@ public class BuildingController : PanelObject
 		{
 			for(int i = 1; i < building.jobs.Length; ++i)
 			{
-				town.Fire(building.jobs[i].wage, building.jobs[i].townWorkers);
+				populationController.Fire(building.jobs[i].wage, building.jobs[i].townWorkers);
 				Player[] playerWorkers = building.jobs[i].playerWorkers.ToArray();
 				foreach(Player player in playerWorkers)
 				{
@@ -952,7 +952,7 @@ public class BuildingController : PanelObject
 		building.underConstruction = false;
 		constructionSites.Remove(building);
 
-		town.Fire(building.jobs[0].wage, building.jobs[0].townWorkers);
+		populationController.Fire(building.jobs[0].wage, building.jobs[0].townWorkers);
 		Player[] playerWorkers = building.jobs[0].playerWorkers.ToArray();
 		foreach(Player player in playerWorkers)
 		{
@@ -978,7 +978,7 @@ public class BuildingController : PanelObject
 				infoController.AddMessage("Fired " + player.GetPlayerName() + "!", true, false);
 			}
 
-			town.Fire(building.jobs[j].wage, building.jobs[j].townWorkers);
+			populationController.Fire(building.jobs[j].wage, building.jobs[j].townWorkers);
 		}
 
 		if(building.underConstruction)
