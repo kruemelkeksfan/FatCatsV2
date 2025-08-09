@@ -42,6 +42,9 @@ public class PopulationController : MonoBehaviour
 		}
 	}
 
+	// TODO: Indexing based on Age or Wage
+	// TODO: Wage Groups
+
 	// TODO: Unemployment Compensation: ensure, that nobody works for wages <= Unemployment Compensation so that the Population Group Sorting stays intact
 
 	[SerializeField] private NeedData[] needData = null;
