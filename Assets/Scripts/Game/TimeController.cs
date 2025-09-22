@@ -230,4 +230,9 @@ public class TimeController : MonoBehaviour
 		}
 		timeButtons[timeScaleIndex].color = activeTimeButtonColor;
 	}
+
+	public int GetDaysPerYear()
+	{
+		return daysPerYear;
+	}
 }

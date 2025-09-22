@@ -149,7 +149,6 @@ public class BuildingController : PanelObject
 
 				buildingInfo = (RectTransform)buildingEntry.GetChild(2);
 
-				buildingInfo.GetChild(2).GetComponent<TMP_Text>().text = Mathf.RoundToInt(building.quality * 100.0f) + "%";
 				buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = building.GetCurrentWorkerCount() + "/" + building.buildingData.maxWorkerCount;
 				buildingInfo.GetChild(4).GetComponent<TMP_Text>().text = building.currentProductId >= 0 ? (building.buildingData.products[building.currentProductId] + " (" + building.CalculateOutput() + "/day)") : "none";
 			}
@@ -162,8 +161,6 @@ public class BuildingController : PanelObject
 				buildingEntry.anchoredPosition = new Vector2(buildingEntry.anchoredPosition.x, -totalHeight);
 
 				buildingInfo = (RectTransform)buildingEntry.GetChild(2);
-
-				buildingInfo.GetChild(2).GetComponent<TMP_Text>().text = Mathf.RoundToInt(constructionSite.newQuality * 100.0f) + "%";
 				buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = building.GetCurrentWorkerCount() + "/" + building.wantedWorkers;
 
 				Transform materialInfo = buildingInfo.GetChild(4);
@@ -187,7 +184,7 @@ public class BuildingController : PanelObject
 
 				if(building.GetCurrentWorkerCount() > 0)
 				{
-					buildingInfo.GetChild(5).GetComponent<TMP_Text>().text = constructionSites[building].GetTimeLeft() + " days";
+					buildingInfo.GetChild(5).GetComponent<TMP_Text>().text = MathUtil.GetTimespanString(constructionSites[building].GetTimeLeft());
 				}
 				else
 				{
@@ -198,6 +195,7 @@ public class BuildingController : PanelObject
 			buildingEntry.GetChild(0).GetComponent<TMP_Text>().text = building.buildingData.buildingName;
 			buildingEntry.GetChild(1).GetComponent<TMP_Text>().text = building.owner != null ? building.owner.GetPlayerName() : townName;
 			buildingInfo.GetChild(1).GetComponent<TMP_Text>().text = building.size.ToString();
+			buildingInfo.GetChild(2).GetComponent<TMP_Text>().text = Mathf.RoundToInt(building.quality * 100.0f) + "%";
 
 			Button listButton = buildingEntry.GetComponent<Button>();
 			listButton.onClick.RemoveAllListeners();
@@ -236,7 +234,8 @@ public class BuildingController : PanelObject
 
 			// General Info
 			buildingInfo.GetChild(1).GetComponent<TMP_Text>().text = currentBuilding.size.ToString();
-			buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = Mathf.RoundToInt(currentBuilding.quality * 100.0f) + "%"; // TODO: newQuality?
+			buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = Mathf.RoundToInt(currentBuilding.quality * 100.0f) + "%";
+			buildingInfo.GetChild(8).GetComponent<TMP_Text>().text = "(" + MathUtil.GetTimespanString(CalculateLifespan(currentBuilding.quality)) + ")";
 
 			// Production
 			bool playerOwned = currentBuilding.owner != null && currentBuilding.owner == player;
@@ -429,7 +428,7 @@ public class BuildingController : PanelObject
 
 					TMP_Text repairCostText = buildingActions.GetChild(1).GetComponent<TMP_Text>();
 					StringBuilder repairCostString = new StringBuilder();
-					repairCostString.Append(Mathf.CeilToInt(ConstructionSite.GetRepairTime(currentBuilding)) + " days");
+					repairCostString.Append(MathUtil.GetTimespanString(Mathf.CeilToInt(ConstructionSite.GetRepairTime(currentBuilding))));
 					List<Tuple<string, int>> repairMaterials = ConstructionSite.GetRepairMaterials(currentBuilding);
 					foreach(Tuple<string, int> repairMaterial in repairMaterials)
 					{
@@ -455,7 +454,7 @@ public class BuildingController : PanelObject
 
 					TMP_Text destructionGainText = buildingActions.GetChild(4).GetComponent<TMP_Text>();
 					StringBuilder destructionGainString = new StringBuilder();
-					destructionGainString.Append(Mathf.CeilToInt(ConstructionSite.GetDeconstructionTime(currentBuilding, currentDestructionCount)) + " days");
+					destructionGainString.Append(MathUtil.GetTimespanString(Mathf.CeilToInt(ConstructionSite.GetDeconstructionTime(currentBuilding, currentDestructionCount))));
 					List<Tuple<string, int>> deconstructionMaterials = ConstructionSite.GetDeconstructionMaterials(currentBuilding, currentDestructionCount);
 					foreach(Tuple<string, int> deconstructionMaterial in deconstructionMaterials)
 					{
@@ -518,7 +517,8 @@ public class BuildingController : PanelObject
 								{
 									int addedAmount = playerInventory.WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, true);
 									storedAmount += addedAmount;
-									constructionSite.newQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+									constructionSite.materialQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+									constructionSite.materialQuality = Mathf.Min(constructionSite.materialQuality, currentBuilding.buildingStyle.baseQuality - currentBuilding.quality); // Necessary, because necessary Repair Materials are rounded up
 									if(addedAmount > 0)
 									{
 										constructionSite.enoughMaterial = true;
@@ -536,7 +536,8 @@ public class BuildingController : PanelObject
 									{
 										int addedAmount = warehouseInventories[playerName].WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, false);
 										storedAmount += addedAmount;
-										constructionSite.newQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+										constructionSite.materialQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+										constructionSite.materialQuality = Mathf.Min(constructionSite.materialQuality, currentBuilding.buildingStyle.baseQuality - currentBuilding.quality); // Necessary, because necessary Repair Materials are rounded up
 										if(addedAmount > 0)
 										{
 											constructionSite.enoughMaterial = true;
@@ -551,7 +552,7 @@ public class BuildingController : PanelObject
 								constructionSite.storedBuildingMaterials[j] = new Tuple<string, int>(constructionSite.storedBuildingMaterials[j].Item1, storedAmount);
 								if(constructionSite.action == ConstructionSite.Action.Construction)
 								{
-									currentBuilding.quality = constructionSite.newQuality;
+									currentBuilding.quality += constructionSite.materialQuality;
 								}
 
 								panelManager.QueuePanelUpdate(this);
@@ -586,22 +587,22 @@ public class BuildingController : PanelObject
 					{
 						infoController.ActivateConfirmationPanel("Do you want to abort the Building Operation?", delegate
 						{
+							float materialQuality = constructionSite.materialQuality / currentBuilding.buildingStyle.baseQuality;
 							if(constructionSite.action == ConstructionSite.Action.Construction)
 							{
+								materialQuality = currentBuilding.quality / currentBuilding.buildingStyle.baseQuality;
 								buildings.Remove(currentBuilding);
-							}
-
-							float quality = constructionSite.newQuality / currentBuilding.buildingStyle.baseQuality;
+							}							
 							for(int i = 0; i < constructionSite.storedBuildingMaterials.Count; ++i)
 							{
 								if(!(warehouseInventories.ContainsKey(playerName) && warehouseInventories[playerName].DepositGood(new Good(
 									goodManager.GetGoodData(constructionSite.storedBuildingMaterials[i].Item1),
-									quality, quality, warehouseInventories[playerName]),
+									materialQuality, materialQuality, warehouseInventories[playerName]),
 									constructionSite.storedBuildingMaterials[i].Item2)))
 								{
 									playerInventory.DepositGood(new Good(
 										goodManager.GetGoodData(constructionSite.storedBuildingMaterials[i].Item1),
-										quality, quality, playerInventory),
+										materialQuality, materialQuality, playerInventory),
 										constructionSite.storedBuildingMaterials[i].Item2);
 								}
 							}
@@ -736,31 +737,22 @@ public class BuildingController : PanelObject
 
 			// Building Degradation
 			// Do not destroy fresh Construction Sites
-			if(!(buildings[i].underConstruction && constructionSites[buildings[i]].action == ConstructionSite.Action.Construction && constructionSites[buildings[i]].newQuality <= 0.0f))
+			if(!(buildings[i].underConstruction && constructionSites[buildings[i]].action == ConstructionSite.Action.Construction && buildings[i].quality <= 0.0f))
 			{
-				float quality = buildings[i].underConstruction ? constructionSites[buildings[i]].newQuality : buildings[i].quality;
-				// Quality Loss: y = (1 / (2 * x)) with y: Quality Loss, x: current Quality in %
-				if(quality > Mathf.Epsilon)
+				// Quality Loss: y = (1 / (10 * x)) with y: Quality Loss, x: current Quality in %
+				if(buildings[i].quality > Mathf.Epsilon)
 				{
-					quality -= ((1.0f / (quality * 100.0f * 10.0f * buildingDegradationFactor)) / 100.0f);
+					buildings[i].quality -= (1.0f / (buildings[i].quality * 100.0f * 10.0f * buildingDegradationFactor)) / 100.0f;
 				}
-				if(quality <= Mathf.Epsilon)
+				if(buildings[i].quality <= Mathf.Epsilon)
 				{
 					buildingsToDestroy.Add(buildings[i]);
 					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " withered away!", true, true);
 				}
-				else if(quality <= 0.01f && !buildings[i].decayWarningIssued)
+				else if(buildings[i].quality <= 0.01f && !buildings[i].decayWarningIssued)
 				{
 					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " is in bad Condition!", true, false);
 					buildings[i].decayWarningIssued = true;
-				}
-				if(buildings[i].underConstruction)
-				{
-					constructionSites[buildings[i]].newQuality = quality;
-				}
-				else
-				{
-					buildings[i].quality = quality;
 				}
 			}
 		}
@@ -788,7 +780,7 @@ public class BuildingController : PanelObject
 				// Repair
 				else if(constructionSites[building].action == ConstructionSite.Action.Repair)
 				{
-					building.quality = constructionSites[building].newQuality;
+					building.quality += constructionSites[building].materialQuality;
 					building.decayWarningIssued = false;
 					TerminateConstructionSite(building, true);
 					infoController.AddMessage("Repair of " + building.buildingData.buildingName + " complete", false, false);
@@ -1007,6 +999,21 @@ public class BuildingController : PanelObject
 		buildings.Remove(building);
 
 		panelManager.QueuePanelUpdate(this);
+	}
+
+	public int CalculateLifespan(float quality)
+	{
+		// Quality Loss: y = (1 / (10 * x)) with y: Quality Loss, x: current Quality in %
+		float currentQuality = quality;
+		int daysToLive = 0;
+		float degradationFactor = 100.0f * 10.0f * buildingDegradationFactor;
+		while(currentQuality > Mathf.Epsilon)
+		{
+			currentQuality -= (1.0f / (currentQuality * degradationFactor)) / 100.0f;
+			++daysToLive;
+		}
+
+		return daysToLive;
 	}
 
 	public void AddPlayerWarehouseInventory(Player player)

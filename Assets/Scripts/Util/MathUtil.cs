@@ -15,6 +15,8 @@ public static class MathUtil
 
 	public const float EPSILON = 0.0001f;
 
+	private static int daysPerYear = -1;
+
 	public static List<Tile> FindPath(Map map, Tile startTile, Tile targetTile)
 	{
 		float minimumMovementCost = map.GetTile(Vector2Int.zero).CalculateBestMovementCost();
@@ -144,5 +146,27 @@ public static class MathUtil
 	{
 		// Return Taxicab Distance
 		return (Mathf.Abs(target.x - start.x) + Mathf.Abs(target.y - start.y)) * minimumMovementCost;
+	}
+
+	public static string GetTimespanString(float days)
+	{
+		if(daysPerYear <= 0)
+		{
+			daysPerYear = TimeController.GetInstance().GetDaysPerYear();
+		}
+
+		if(days == 1.0f)
+		{
+			return days + " day";
+		}
+		else if(days >= daysPerYear)
+		{
+			return (days / daysPerYear).ToString("F1") + " years";
+		}
+		else
+		{
+			int roundedDays = Mathf.RoundToInt(days);
+			return (Mathf.Approximately(days, roundedDays) ? roundedDays : days.ToString("F1")) + " days";
+		}
 	}
 }

@@ -126,7 +126,7 @@ public class ConstructionPanelController : PanelObject
 				++k;
 			}
 			buildingInfo.GetChild(7).GetComponent<TMP_Text>().text = buildingCostText.ToString();
-			buildingInfo.GetChild(9).GetComponent<TMP_Text>().text = ConstructionSite.GetConstructionTime(currentBuildingData.Value, availableBuildingStyles[currentBuildingStyle], currentConstructionCount) + " days";
+			buildingInfo.GetChild(9).GetComponent<TMP_Text>().text = MathUtil.GetTimespanString(ConstructionSite.GetConstructionTime(currentBuildingData.Value, availableBuildingStyles[currentBuildingStyle], currentConstructionCount));
 
 			TMP_Dropdown buildingStyleDropdown = buildingInfo.GetChild(10).GetComponent<TMP_Dropdown>();
 			if(buildingStyleDropdown.options.Count <= 0)

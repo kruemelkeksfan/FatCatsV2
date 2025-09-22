@@ -179,9 +179,9 @@ public class ConstructionSite
 	public List<Tuple<string, int>> storedBuildingMaterials;
 	public List<Tuple<string, int>> necessaryBuildingMaterials;
 	public bool enoughMaterial;
+	public float materialQuality;
 	public float passedBuildingTime;
 	public float necessaryBuildingTime;
-	public float newQuality;
 	public float constructionParallelizationPotential;
 	public int destructionCount;
 
@@ -218,8 +218,8 @@ public class ConstructionSite
 			necessaryBuildingTime = GetDeconstructionTime(building, destructionCount);
 		}
 
-		newQuality = building.quality;
 		enoughMaterial = false;
+		materialQuality = 0.0f;
 		passedBuildingTime = 0.0f;
 	}
 
