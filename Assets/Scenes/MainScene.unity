@@ -2153,6 +2153,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   buildingData:
   - buildingName: Warehouse
+    description: Allows you to store Products, Resources and Market Goods in this
+      Town without Decay by Weather
     products: []
     productOutputs: 
     resourceProductIds: 
@@ -2161,8 +2163,11 @@ MonoBehaviour:
     buildingTime: 10
     jobTitles:
     - Administrator
+    jobTitle: Administrator
     maxWorkerCounts: 01000000
+    maxWorkerCount: 1
   - buildingName: Lumberjack Hut
+    description: Produces Wood or Twigs
     products:
     - Wood
     - Twigs
@@ -2173,8 +2178,11 @@ MonoBehaviour:
     buildingTime: 20
     jobTitles:
     - Lumberjack
+    jobTitle: Lumberjack
     maxWorkerCounts: 01000000
+    maxWorkerCount: 1
   - buildingName: Quarry
+    description: Produces Stone
     products:
     - Stone
     productOutputs: 02000000
@@ -2184,8 +2192,11 @@ MonoBehaviour:
     buildingTime: 20
     jobTitles:
     - Stonecutter
+    jobTitle: Stonecutter
     maxWorkerCounts: 01000000
+    maxWorkerCount: 1
   - buildingName: Farm
+    description: Produces Fruits, Flax or Herbs
     products:
     - Fruits
     - Flax
@@ -2197,8 +2208,11 @@ MonoBehaviour:
     buildingTime: 50
     jobTitles:
     - Farmer
+    jobTitle: Farmer
     maxWorkerCounts: 05000000
+    maxWorkerCount: 5
   - buildingName: Firewood Splitter
+    description: Produces Firewood from Wood or Twigs
     products:
     - Firewood
     - Firewood
@@ -2211,8 +2225,11 @@ MonoBehaviour:
     buildingTime: 20
     jobTitles:
     - Woodsplitter
+    jobTitle: Woodsplitter
     maxWorkerCounts: 01000000
+    maxWorkerCount: 1
   - buildingName: Flax Weaving Mill
+    description: Produces Cloth from Flax and Firewood
     products:
     - Cloth
     productOutputs: 02000000
@@ -2224,8 +2241,11 @@ MonoBehaviour:
     buildingTime: 40
     jobTitles:
     - Weaver
+    jobTitle: Weaver
     maxWorkerCounts: 02000000
+    maxWorkerCount: 2
   - buildingName: Tailorshop
+    description: Produces Tribalwear, Loincloths or Backpacks from Cloth
     products:
     - Tribalwear
     - Loincloths
@@ -2240,7 +2260,9 @@ MonoBehaviour:
     buildingTime: 50
     jobTitles:
     - Tailor
+    jobTitle: Tailor
     maxWorkerCounts: 01000000
+    maxWorkerCount: 1
   buildingStyles:
   - buildingStyleName: Twig Hut
     baseQuality: 0.05
@@ -3994,6 +4016,7 @@ MonoBehaviour:
   - {fileID: 1501393398835742014, guid: 9edf883d0fff18b42bdd24dcc895b1ba, type: 3}
   - {fileID: 1501393398835742014, guid: 46269541284ec624e83f8e91f2b7c256, type: 3}
   - {fileID: 1501393398835742014, guid: f0a460552039abc4aa83f5e77b0494ff, type: 3}
+  - {fileID: 1501393398835742014, guid: 750b7ae19c59bb4438f2a374f75c0082, type: 3}
   panelParent: {fileID: 1949739176}
   maxTiledPanelCount: 4
   maxPanelCount: 8

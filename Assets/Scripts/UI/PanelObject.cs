@@ -5,7 +5,7 @@ using UnityEngine;
 public class PanelObject : MonoBehaviour
 {
 	[SerializeField] private PanelManager.PanelObjectType panelObjectType = PanelManager.PanelObjectType.Tile;
-	protected HashSet<RectTransform> openPanels = null;
+	private HashSet<RectTransform> openPanels = null;
 	protected PanelManager panelManager = null;
 
 	protected virtual void Start()

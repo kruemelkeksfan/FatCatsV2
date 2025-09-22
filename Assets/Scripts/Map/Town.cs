@@ -8,6 +8,7 @@ public class Town : PanelObject, IListener
 	private new Transform transform = null;
 	private Market market = null;
 	private BuildingController buildingController = null;
+	private ConstructionPanelController constructionPanelController = null;
 	private PopulationController populationController = null;
 	private string townName = null;
 	private Vector2Int position = Vector2Int.zero;
@@ -17,14 +18,16 @@ public class Town : PanelObject, IListener
 		transform = gameObject.GetComponent<Transform>();
 		market = gameObject.GetComponent<Market>();
 		buildingController = gameObject.GetComponent<BuildingController>();
+		constructionPanelController = gameObject.GetComponent<ConstructionPanelController>();
 		populationController = gameObject.GetComponent<PopulationController>();
+
+		townName = GenerateTownName();
 	}
 
 	protected override void Start()
 	{
 		base.Start();
 
-		townName = GenerateTownName();
 		position = gameObject.GetComponentInParent<Tile>().GetPosition();
 
 		TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Town);
@@ -105,39 +108,49 @@ public class Town : PanelObject, IListener
 		Player player = transform.parent.gameObject.GetComponentInChildren<Player>();
 		if(player != null && player.IsLocalPlayer())
 		{
-			Button marketButton = detailPanel.GetChild(1).GetComponent<Button>();
+			Button marketButton = detailPanel.GetChild(2).GetComponent<Button>();
 			marketButton.onClick.RemoveAllListeners();
 			marketButton.onClick.AddListener(delegate
 			{
 				panelManager.OpenPanel(market);
 			});
-			marketButton.gameObject.SetActive(true);
 
-			Button storageButton = detailPanel.GetChild(2).GetComponent<Button>();
+			Button storageButton = detailPanel.GetChild(3).GetComponent<Button>();
 			storageButton.onClick.RemoveAllListeners();
 			storageButton.onClick.AddListener(delegate
 			{
 				panelManager.OpenPanel(buildingController.GetWarehouseInventory(player.GetPlayerName()));
 			});
-			storageButton.gameObject.SetActive(true);
 
-			Button buildingButton = detailPanel.GetChild(3).GetComponent<Button>();
+			Button constructButton = detailPanel.GetChild(4).GetComponent<Button>();
+			constructButton.onClick.RemoveAllListeners();
+			constructButton.onClick.AddListener(delegate
+			{
+				panelManager.OpenPanel(constructionPanelController);
+			});
+
+			Button buildingButton = detailPanel.GetChild(5).GetComponent<Button>();
 			buildingButton.onClick.RemoveAllListeners();
 			buildingButton.onClick.AddListener(delegate
 			{
 				panelManager.OpenPanel(buildingController);
 			});
-			buildingButton.gameObject.SetActive(true);
 
-			detailPanel.GetChild(4).gameObject.SetActive(false);
+			for(int i = 0; i < detailPanel.childCount; ++i)
+			{
+				detailPanel.GetChild(i).gameObject.SetActive(true);
+			}
+
+			detailPanel.GetChild(1).gameObject.SetActive(false);
 		}
 		else
 		{
-			detailPanel.GetChild(1).gameObject.SetActive(false);
-			detailPanel.GetChild(2).gameObject.SetActive(false);
-			detailPanel.GetChild(3).gameObject.SetActive(false);
+			for(int i = 0; i < detailPanel.childCount; ++i)
+			{
+				detailPanel.GetChild(i).gameObject.SetActive(false);
+			}
 
-			detailPanel.GetChild(4).gameObject.SetActive(true);
+			detailPanel.GetChild(1).gameObject.SetActive(true);
 		}
 	}
 

@@ -54,7 +54,7 @@ public class Player : MonoBehaviour
 	private InfoController infoController = null;
 	private Action currentAction = new Action();
 	private bool productive = false;
-	private Tuple<Building, int> workplace = null;
+	private Building workplace = null;
 	private TMP_Text characterActionText = null;
 	private RectTransform characterActionProgressBar = null;
 	private Vector2 characterActionProgressBarPosition = Vector2.zero;
@@ -100,7 +100,7 @@ public class Player : MonoBehaviour
 		encounterTransferPoints[4] = new Vector2(0.5f, 0.0f);
 
 		// Init Inventory
-		inventory.SetPlayer(this, false);
+		inventory.SetPlayer(this, null);
 		inventory.ChangeMoney(startingMoney);
 
 		RectTransform characterPanel = panelManager.GetCharacterPanel();
@@ -132,11 +132,12 @@ public class Player : MonoBehaviour
 			panelManager.OpenPanel(inventory);
 		});
 
+		// Debug
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Fruits"), 1.0f, 1.0f, inventory), 2000);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Wood"), 1.0f, 1.0f, inventory), 10);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Stone"), 1.0f, 1.0f, inventory), 20);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Twigs"), 0.5f, 0.5f, inventory), 500);
-
+		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Wood"), 0.5f, 0.5f, inventory), 500);
 		/*for(int i = 0; i < 100; ++i)
 		{
 			inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Fruits"), 1.0f, 0.1f * i, inventory), 1);
@@ -381,7 +382,7 @@ public class Player : MonoBehaviour
 
 		if(workplace != null)
 		{
-			workplace.Item1.jobs[workplace.Item2].playerWorkers.Remove(this);
+			workplace.playerWorkers.Remove(this);
 			workplace = null;
 		}
 
@@ -445,11 +446,11 @@ public class Player : MonoBehaviour
 		});
 	}
 
-	public void WageLabour(Building building, int jobId, BuildingController buildingController)
+	public void WageLabour(Building building, BuildingController buildingController)
 	{
 		ResetAction(true, false, false);
 		double time = timeController.GetTime();
-		currentAction = new Action("Working as " + building.jobs[jobId].jobName, time, (System.Math.Ceiling(time) + 0.0001 - time) + 0.0001, true, characterActionText, delegate
+		currentAction = new Action("Working as " + (building.underConstruction ? "Construction Worker" : building.buildingData.jobTitle), time, (System.Math.Ceiling(time) + 0.0001 - time) + 0.0001, true, characterActionText, delegate
 		{
 			productive = true;
 
@@ -466,7 +467,7 @@ public class Player : MonoBehaviour
 				currentAction.duration = 1.0;
 			}
 		});
-		workplace = new Tuple<Building, int>(building, jobId);
+		workplace = building;
 		productive = false; // Productivity will only be enabled after 1 full Cycle
 	}
 

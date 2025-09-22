@@ -1,19 +1,21 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using UnityEngine;
 
 [Serializable]
 public struct BuildingData
 {
 	public string buildingName;
+	public string description;
 	public string[] products;
 	public int[] productOutputs;
 	public int[] resourceProductIds;
 	public string[] resources;
 	public int[] resourceInputs;
 	public float buildingTime;
-	public string[] jobTitles;
-	public int[] maxWorkerCounts;
+	public string jobTitle;
+	public int maxWorkerCount;
 }
 
 [Serializable]
@@ -26,35 +28,6 @@ public struct BuildingStyle
 }
 
 [Serializable]
-public struct Job
-{
-	public string jobName;
-	public int townWorkers;
-	public List<Player> playerWorkers;
-	public int wantedWorkers;
-	public int wage;
-
-	public Job(string name)
-	{
-		this.jobName = name;
-
-		townWorkers = 0;
-		playerWorkers = new List<Player>(1);
-		wantedWorkers = 0;
-		wage = 1;
-	}
-
-	public Job(string name, int townWorkers, List<Player> playerWorkers, int wantedWorkers, int wage)
-	{
-		this.jobName = name;
-		this.townWorkers = townWorkers;
-		this.playerWorkers = playerWorkers;
-		this.wantedWorkers = wantedWorkers;
-		this.wage = wage;
-	}
-}
-
-[Serializable]
 public class Building
 {
 	public BuildingData buildingData;
@@ -63,7 +36,10 @@ public class Building
 	public int size;
 	public int currentProductId;
 	public List<Tuple<string, int>> currentResourceInputs;
-	public Job[] jobs;
+	public int townWorkers;
+	public List<Player> playerWorkers;
+	public int wantedWorkers;
+	public int wage;
 	public Inventory connectedInventory;
 	public Player owner;
 	public bool underConstruction;
@@ -85,43 +61,33 @@ public class Building
 		{
 			ChangeProduction();
 		}
-		jobs = new Job[buildingData.jobTitles.Length + 1];
-		jobs[0] = new Job("Construction Worker");
-		for(int i = 0; i < buildingData.jobTitles.Length; ++i)
-		{
-			jobs[i + 1] = new Job(buildingData.jobTitles[i]);
-		}
-		underConstruction = true; // Has to be true on Initialization to know whether a Building is freshly built or renovated in BuildingController
+		townWorkers = 0;
+		playerWorkers = new List<Player>(1);
+		wantedWorkers = 0;
+		wage = 1;
+		underConstruction = true;   // Has to be true on Initialization to know whether a Building is freshly built or renovated in BuildingController
 		decayWarningIssued = false;
 	}
 
-	public int GetCurrentWorkerCount(string jobName = null)
+	public int GetCurrentWorkerCount()
 	{
-		int totalWorkers = 0;
-		foreach(Job job in jobs)
+		int playerCount = 0;
+		foreach(Player player in playerWorkers)
 		{
-			if(jobName == null || job.jobName == jobName)
+			if(player.IsProductive())
 			{
-				int playerCount = 0;
-				foreach(Player player in job.playerWorkers)
-				{
-					if(player.IsProductive())
-					{
-						++playerCount;
-					}
-				}
-				totalWorkers += job.townWorkers + playerCount;
+				++playerCount;
 			}
 		}
 
-		return totalWorkers;
+		return townWorkers + playerCount;
 	}
 
 	public int CalculateOutput()
 	{
 		if(currentProductId >= 0)
 		{
-			return buildingData.productOutputs[currentProductId] * GetCurrentWorkerCount();
+			return buildingData.productOutputs[currentProductId] * size * GetCurrentWorkerCount();
 		}
 
 		return 0;
@@ -144,12 +110,69 @@ public class Building
 			panelManager?.QueuePanelUpdate(panelObject);
 		}
 	}
+
+	public float GetRepairCostFactor()
+	{
+		return (buildingStyle.baseQuality - quality) / buildingStyle.baseQuality;
+	}
 }
 
 [Serializable]
 public class ConstructionSite
 {
 	public enum Action { Construction, Repair, Deconstruction };
+
+	public static List<Tuple<string, int>> GetConstructionMaterials(BuildingData buildingData, BuildingStyle buildingStyle, int size)
+	{
+		List<Tuple<string, int>> necessaryBuildingMaterials = new List<Tuple<string, int>>();
+		for(int i = 0; i < buildingStyle.materials.Length; ++i)
+		{
+			necessaryBuildingMaterials.Add(new Tuple<string, int>(
+				buildingStyle.materials[i], Mathf.CeilToInt(buildingStyle.materialAmountPerDay[i] * buildingData.buildingTime * size)));
+		}
+
+		return necessaryBuildingMaterials;
+	}
+
+	public static float GetConstructionTime(BuildingData buildingData, BuildingStyle buildingStyle, int size)
+	{
+		return buildingData.buildingTime * buildingStyle.baseQuality * size;
+	}
+
+	public static List<Tuple<string, int>> GetRepairMaterials(Building building)
+	{
+		float costFactor = building.GetRepairCostFactor();
+		List<Tuple<string, int>> necessaryBuildingMaterials = new List<Tuple<string, int>>();
+		for(int i = 0; i < building.buildingStyle.materials.Length; ++i)
+		{
+			necessaryBuildingMaterials.Add(new Tuple<string, int>(
+				building.buildingStyle.materials[i], Mathf.CeilToInt(building.buildingStyle.materialAmountPerDay[i] * building.buildingData.buildingTime * building.size * costFactor)));
+		}
+
+		return necessaryBuildingMaterials;
+	}
+
+	public static float GetRepairTime(Building building)
+	{
+		return building.buildingData.buildingTime * building.buildingStyle.baseQuality * building.size * building.GetRepairCostFactor();
+	}
+
+	public static List<Tuple<string, int>> GetDeconstructionMaterials(Building building, int destructionCount)
+	{
+		List<Tuple<string, int>> deconstructionMaterials = new List<Tuple<string, int>>();
+		for(int i = 0; i < building.buildingStyle.materials.Length; ++i)
+		{
+			deconstructionMaterials.Add(new Tuple<string, int>(
+				building.buildingStyle.materials[i], Mathf.FloorToInt(building.buildingStyle.materialAmountPerDay[i] * building.buildingData.buildingTime * destructionCount * BuildingManager.GetInstance().GetDeconstructionYieldFactor())));
+		}
+
+		return deconstructionMaterials;
+	}
+
+	public static float GetDeconstructionTime(Building building, int destructionCount)
+	{
+		return building.buildingData.buildingTime * building.buildingStyle.baseQuality * destructionCount;
+	}
 
 	public Building building;
 	public Action action = Action.Construction;
@@ -159,53 +182,44 @@ public class ConstructionSite
 	public float passedBuildingTime;
 	public float necessaryBuildingTime;
 	public float newQuality;
-	public int destructionCount;
 	public float constructionParallelizationPotential;
-	public float deconstructionYieldFactor;
+	public int destructionCount;
 
 	public ConstructionSite(Building building, Action action, int destructionCount = 0)
 	{
 		this.building = building;
 		this.action = action;
-		this.destructionCount = destructionCount;
 
 		BuildingManager buildingManager = BuildingManager.GetInstance();
 		constructionParallelizationPotential = buildingManager.GetConstructionParallelizationPotential();
-		deconstructionYieldFactor = buildingManager.GetDeconstructionYieldFactor();
+		this.destructionCount = destructionCount;
 
-		storedBuildingMaterials = new List<Tuple<string, int>>();
-		necessaryBuildingMaterials = new List<Tuple<string, int>>();
+		storedBuildingMaterials = new List<Tuple<string, int>>(building.buildingStyle.materials.Length);
 		if(action == Action.Construction)
 		{
 			for(int i = 0; i < building.buildingStyle.materials.Length; ++i)
 			{
 				storedBuildingMaterials.Add(new Tuple<string, int>(building.buildingStyle.materials[i], 0));
-				necessaryBuildingMaterials.Add(new Tuple<string, int>(
-					building.buildingStyle.materials[i], Mathf.CeilToInt(building.buildingStyle.materialAmountPerDay[i] * building.buildingData.buildingTime * building.size)));
 			}
-
-			necessaryBuildingTime = building.buildingData.buildingTime * building.buildingStyle.baseQuality * building.size;
+			necessaryBuildingMaterials = GetConstructionMaterials(building.buildingData, building.buildingStyle, building.size);
+			necessaryBuildingTime = GetConstructionTime(building.buildingData, building.buildingStyle, building.size);
 		}
 		else if(action == Action.Repair)
 		{
-			float costFactor = GetRepairCostFactor();
-
 			for(int i = 0; i < building.buildingStyle.materials.Length; ++i)
 			{
 				storedBuildingMaterials.Add(new Tuple<string, int>(building.buildingStyle.materials[i], 0));
-				necessaryBuildingMaterials.Add(new Tuple<string, int>(
-					building.buildingStyle.materials[i], GetRepairCost(i, costFactor)));
 			}
-
-			necessaryBuildingTime = building.buildingData.buildingTime * building.buildingStyle.baseQuality * building.size * costFactor;
+			necessaryBuildingMaterials = GetRepairMaterials(building);
+			necessaryBuildingTime = GetRepairTime(building);
 		}
 		else if(action == Action.Deconstruction)
 		{
-			necessaryBuildingTime = building.buildingData.buildingTime * building.buildingStyle.baseQuality * destructionCount;
+			necessaryBuildingTime = GetDeconstructionTime(building, destructionCount);
 		}
 
 		newQuality = building.quality;
-		enoughMaterial = true;
+		enoughMaterial = false;
 		passedBuildingTime = 0.0f;
 	}
 
@@ -219,18 +233,21 @@ public class ConstructionSite
 		}
 
 		// Return Time Estimate after all Workers are productive
-		return 1 + Mathf.CeilToInt((necessaryBuildingTime - passedBuildingTimeTomorrow) * GetSpeedup(true));
+		return 1 + Mathf.CeilToInt((necessaryBuildingTime - passedBuildingTimeTomorrow) / GetSpeedup(true));
 	}
 
 	public bool AdvanceConstruction()
 	{
 		float minBuildingMaterialProgress = 1.0f;
-		for(int j = 0; j < necessaryBuildingMaterials.Count; ++j)
+		if(action != ConstructionSite.Action.Deconstruction)
 		{
-			float buildingMaterialProgress = (float)storedBuildingMaterials[j].Item2 / (float)necessaryBuildingMaterials[j].Item2;
-			if(buildingMaterialProgress < minBuildingMaterialProgress)
+			for(int j = 0; j < necessaryBuildingMaterials.Count; ++j)
 			{
-				minBuildingMaterialProgress = buildingMaterialProgress;
+				float buildingMaterialProgress = (float)storedBuildingMaterials[j].Item2 / (float)necessaryBuildingMaterials[j].Item2;
+				if(buildingMaterialProgress < minBuildingMaterialProgress)
+				{
+					minBuildingMaterialProgress = buildingMaterialProgress;
+				}
 			}
 		}
 
@@ -262,10 +279,10 @@ public class ConstructionSite
 
 	private float GetSpeedup(bool countUnproductive)
 	{
-		int playerCount = countUnproductive ? building.jobs[0].playerWorkers.Count : 0;
+		int playerCount = countUnproductive ? building.playerWorkers.Count : 0;
 		if(!countUnproductive)
 		{
-			foreach(Player player in building.jobs[0].playerWorkers)
+			foreach(Player player in building.playerWorkers)
 			{
 				if(player.IsProductive())
 				{
@@ -273,7 +290,7 @@ public class ConstructionSite
 				}
 			}
 		}
-		int totalWorkerCount = building.jobs[0].townWorkers + playerCount;
+		int totalWorkerCount = building.townWorkers + playerCount;
 		if(totalWorkerCount > 0)
 		{
 			// Source: https://de.wikipedia.org/wiki/Amdahlsches_Gesetz
@@ -281,26 +298,6 @@ public class ConstructionSite
 		}
 
 		return 0.0f;
-	}
-
-	public float GetRepairCostFactor()
-	{
-		return (building.buildingStyle.baseQuality - building.quality) / building.buildingStyle.baseQuality;
-	}
-
-	public int GetConstructionCost(int materialIndex)
-	{
-		return Mathf.CeilToInt(building.buildingStyle.materialAmountPerDay[materialIndex] * building.buildingData.buildingTime * building.size);
-	}
-
-	public int GetRepairCost(int materialIndex, float costFactor)
-	{
-		return Mathf.CeilToInt(building.buildingStyle.materialAmountPerDay[materialIndex] * building.buildingData.buildingTime * building.size * costFactor);
-	}
-
-	public int GetDesconstructionYield(int materialIndex)
-	{
-		return Mathf.FloorToInt(building.buildingStyle.materialAmountPerDay[materialIndex] * building.buildingData.buildingTime * destructionCount * deconstructionYieldFactor);
 	}
 }
 
@@ -325,6 +322,60 @@ public class BuildingManager : MonoBehaviour
 		foreach(BuildingData building in buildingData)
 		{
 			buildingDataDictionary.Add(building.buildingName, building);
+
+			// Generate missing Building Descriptions
+			if(building.description == string.Empty)
+			{
+				Debug.Log("Missing Description for " + building.buildingName + ":");
+
+				if(building.products.Length > 0)
+				{
+					StringBuilder descriptionString = new StringBuilder();
+					descriptionString.Append("Produces ");
+					for(int i = 0; i < building.products.Length; ++i)
+					{
+						if(i > 0)
+						{
+							if(i >= building.products.Length - 1)
+							{
+								descriptionString.Append(" or ");
+							}
+							else
+							{
+								descriptionString.Append(", ");
+							}
+						}
+
+						descriptionString.Append(building.products[i]);
+					}
+					if(building.resources.Length > 0)
+					{
+						descriptionString.Append(" from ");
+						for(int i = 0; i < building.resources.Length; ++i)
+						{
+							if(i > 0)
+							{
+								if(i >= building.resources.Length - 1)
+								{
+									descriptionString.Append(" and ");
+								}
+								else
+								{
+									descriptionString.Append(", ");
+								}
+							}
+
+							descriptionString.Append(building.resources[i]);
+						}
+					}
+
+					Debug.Log(descriptionString.ToString());
+				}
+				else
+				{
+					Debug.Log("Unable to generate Description, because this is no Production Building!");
+				}
+			}
 		}
 
 		instance = this;

@@ -326,28 +326,6 @@ public class PopulationController : MonoBehaviour
 		populationGroups = newPopulationGroups;
 	}
 
-	public int Hire(int income, int count)
-	{
-		int hiredCount = 0;
-		for(int i = populationGroups.Length - 1; i >= 0; --i)
-		{
-			if(populationGroups[i].income <= 0)
-			{
-				int hireCount = Mathf.Min(populationGroups[i].count, count - hiredCount);
-				populationGroups[i].count -= hireCount;
-				hiredCount += hireCount;
-			}
-			else if(populationGroups[i].income == income)
-			{
-				populationGroups[i].count += hiredCount;
-			}
-		}
-
-		AddPopulationGroup(income, 0, hiredCount);
-
-		return count - hiredCount;
-	}
-
 	public bool Fire(int income, int count)
 	{
 		if(count <= 0)
@@ -368,43 +346,44 @@ public class PopulationController : MonoBehaviour
 		return false;
 	}
 
-	public Tuple<Dictionary<Tuple<int, int>, int>, Dictionary<int, int>> UpdateJobMarket(LinkedList<Tuple<int, int, int, int>> openPositions)
+	// Analyzes the Towns Job Market, determines the best Jobs for People, assigns them to the right PopulationGroups and returns Lists to update the Building Data
+	public Tuple<Dictionary<Building, int>, Dictionary<int, int>> UpdateJobMarket(LinkedList<Tuple<Building, int>> openPositions)
 	{
-		Dictionary<Tuple<int, int>, int> hireList = new Dictionary<Tuple<int, int>, int>();		// <Building ID, Job ID>, Count
-		Dictionary<int, int> fireList = new Dictionary<int, int>();								// Wage, Count
-		LinkedListNode<Tuple<int, int, int, int>> currentOpenPosition = openPositions.First;	// Building ID, Job ID, Number of open Positions, Wage
+		Dictionary<Building, int> hireList = new Dictionary<Building, int>();           // Building, Count
+		Dictionary<int, int> fireList = new Dictionary<int, int>();                     // Wage, Count
+		LinkedListNode<Tuple<Building, int>> currentOpenPosition = openPositions.First; // Building, Number of open Positions
 		int emptyPopulationGroups = 0;
-		int i = populationGroups.Length - 1;	// Start with poorest Population Group
+		int i = populationGroups.Length - 1;    // Start with poorest Population Group
 		while(currentOpenPosition != null && i >= 0)
 		{
 			// Break if new Job is payed worse than the currently worst payed Job
-			if(currentOpenPosition.Value.Item4 <= populationGroups[i].income)
+			if(currentOpenPosition.Value.Item1.wage <= populationGroups[i].income)
 			{
 				break;
 			}
 
-			Tuple<int, int> currentOpenPositionId = new Tuple<int, int>(currentOpenPosition.Value.Item1, currentOpenPosition.Value.Item2);
+			Building currentOpenPositionBuilding = currentOpenPosition.Value.Item1;
 
-			int hireCount = Mathf.Min(currentOpenPosition.Value.Item3, populationGroups[i].count);
+			int hireCount = Mathf.Min(currentOpenPosition.Value.Item2, populationGroups[i].count);
 			// Hire List
-			if(hireList.ContainsKey(currentOpenPositionId))
+			if(hireList.ContainsKey(currentOpenPositionBuilding))
 			{
-				hireList[currentOpenPositionId] += hireCount;
+				hireList[currentOpenPositionBuilding] += hireCount;
 			}
 			else
 			{
-				hireList.Add(currentOpenPositionId, hireCount);
+				hireList.Add(currentOpenPositionBuilding, hireCount);
 			}
 			// Fire List
-			if(i < populationGroups.Length - 1)
+			if(i < populationGroups.Length - 1) // If the current PopulationGroup already has work a.k.a. is not the poorest PopulationGroup
 			{
-				if(fireList.ContainsKey(currentOpenPosition.Value.Item4))
+				if(fireList.ContainsKey(populationGroups[i].income))
 				{
-					fireList[currentOpenPosition.Value.Item4] += hireCount;
+					fireList[populationGroups[i].income] += hireCount;
 				}
 				else
 				{
-					fireList.Add(currentOpenPosition.Value.Item4, hireCount);
+					fireList.Add(populationGroups[i].income, hireCount);
 				}
 			}
 
@@ -415,7 +394,7 @@ public class PopulationController : MonoBehaviour
 			bool hiredSuccessfully = false;
 			for(int j = 0; j < populationGroups.Length; ++j)
 			{
-				if(populationGroups[j].income == currentOpenPosition.Value.Item4)
+				if(populationGroups[j].income == currentOpenPositionBuilding.wage)
 				{
 					populationGroups[j].count += hireCount;
 					hiredSuccessfully = true;
@@ -424,10 +403,10 @@ public class PopulationController : MonoBehaviour
 			}
 			if(!hiredSuccessfully)
 			{
-				AddPopulationGroup(currentOpenPosition.Value.Item4, 0, hireCount);
+				AddPopulationGroup(currentOpenPositionBuilding.wage, 0, hireCount);
 			}
 
-			if(hireList[currentOpenPositionId] >= currentOpenPosition.Value.Item3)
+			if(hireList[currentOpenPositionBuilding] >= currentOpenPosition.Value.Item2)
 			{
 				currentOpenPosition = currentOpenPosition.Next;
 			}
@@ -450,20 +429,20 @@ public class PopulationController : MonoBehaviour
 			int skippedPopulationGroups = 0;
 			for(int j = 0; j < newPopulationGroups.Length; ++j)
 			{
-				if(populationGroups[j].count > 0 || (j + skippedPopulationGroups) >= (populationGroups.Length - 1))	// Never delete last Population Group (we will need it again)
+				if(populationGroups[j].count > 0 || (j + skippedPopulationGroups) >= (populationGroups.Length - 1)) // Never delete last Population Group (we will need it again)
 				{
 					newPopulationGroups[j] = populationGroups[j + skippedPopulationGroups];
 				}
 				else
 				{
-					populationGroups[populationGroups.Length - 1].savings += populationGroups[j + skippedPopulationGroups].savings;	// Transfer Savings to avoid Money Sink
+					populationGroups[populationGroups.Length - 1].savings += populationGroups[j + skippedPopulationGroups].savings; // Transfer Savings to avoid Money Sink
 					++skippedPopulationGroups;
 				}
 			}
 			populationGroups = newPopulationGroups;
 		}
 
-		return new Tuple<Dictionary<Tuple<int, int>, int>, Dictionary<int, int>>(hireList, fireList);
+		return new Tuple<Dictionary<Building, int>, Dictionary<int, int>>(hireList, fireList);
 	}
 
 	public bool ChangeIncome(int oldIncome, int newIncome, int count)

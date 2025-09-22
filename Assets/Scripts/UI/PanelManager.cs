@@ -9,7 +9,7 @@ using UnityEngine.UI;
 
 public class PanelManager : MonoBehaviour
 {
-	public enum PanelObjectType { Tile, Town, ResourceInfo, Inventory, Skills, Menu, Market, Buildings };
+	public enum PanelObjectType { Tile, Town, ResourceInfo, Inventory, Skills, Menu, Market, Buildings, Construction };
 
 	private static PanelManager instance = null;
 
