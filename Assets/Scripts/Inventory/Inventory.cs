@@ -47,7 +47,7 @@ public class Inventory : PanelObject, IListener
 	private Player player = null;
 	private bool localPlayerInventory = false;
 	private bool localPlayerOwned = false;
-	private bool warehouseInventory = false;
+	private string townName = null;
 	private TMP_Text moneyText = null;
 	private bool overCapacityYesterday = false;
 	private Dictionary<string, AutoTrade> autoTrades = null;
@@ -139,6 +139,11 @@ public class Inventory : PanelObject, IListener
 	public override void UpdatePanel(RectTransform panel, bool add = true)
 	{
 		base.UpdatePanel(panel);
+
+		if(townName != null)
+		{
+			panel.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = "Inventory - " + townName;
+		}
 
 		RectTransform topBar = (RectTransform)panel.GetChild(1);
 
@@ -461,7 +466,7 @@ public class Inventory : PanelObject, IListener
 
 			panelManager.QueuePanelUpdate(this);
 
-			if(!warehouseInventory && recalculatePathCost)
+			if(townName == null && recalculatePathCost)
 			{
 				player.RestartPathIfCheaper();
 			}
@@ -504,7 +509,7 @@ public class Inventory : PanelObject, IListener
 			i += retrieveMaxQuality ? 1 : -1;
 		}
 
-		if(!warehouseInventory && recalculatePathCost)
+		if(townName == null && recalculatePathCost)
 		{
 			player.RestartPathIfCheaper();
 		}
@@ -783,17 +788,17 @@ public class Inventory : PanelObject, IListener
 		return player;
 	}
 
-	public void SetPlayer(Player player, bool warehouseInventory)
+	public void SetPlayer(Player player, string townName)
 	{
 		this.player = player;
-		this.warehouseInventory = warehouseInventory;
+		this.townName = townName;
 
-		localPlayerInventory = player.IsLocalPlayer() && !warehouseInventory;
+		localPlayerInventory = player.IsLocalPlayer() && townName == null;
 		localPlayerOwned = player.IsLocalPlayer();
 
-		if(warehouseInventory)
+		if(townName != null)
 		{
-			var goodDataArray = GoodManager.GetInstance().GetGoodData();
+			GoodData[] goodDataArray = GoodManager.GetInstance().GetGoodData();
 			autoTrades = new Dictionary<string, AutoTrade>(goodDataArray.Length);
 			sortedAutoTrades = new List<string>(goodDataArray.Length);
 			foreach(GoodData goodData in goodDataArray)

@@ -175,7 +175,7 @@ GameObject:
   - component: {fileID: 5274867275703317379}
   - component: {fileID: 4404740061890746223}
   m_Layer: 5
-  m_Name: DropdownMenu
+  m_Name: DropdownMenu_80x20
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -412,7 +412,7 @@ RectTransform:
   m_AnchorMin: {x: 0, y: 0}
   m_AnchorMax: {x: 1, y: 0}
   m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 0, y: 150}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 1}
 --- !u!222 &7822880947648944822
 CanvasRenderer:

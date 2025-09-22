@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 3485394049712569528}
   - component: {fileID: 4811585615747019209}
   - component: {fileID: 7861051965595649646}
+  - component: {fileID: 5202568110408387995}
   - component: {fileID: 6373789344028582501}
   - component: {fileID: 8301208982883198931}
   m_Layer: 0
@@ -165,10 +166,25 @@ MonoBehaviour:
   warehouseBulkPerSize: 2000
   buildingDegradationFactor: 1
   buildingEntryPrefab: {fileID: 7022509754344602647, guid: bca807b1d20dd964293cda2afe2cec4c, type: 3}
-  constructionSiteEntryPrefab: {fileID: 1882197285227136258, guid: c8c35d6e01771da4799efd8b54186f37, type: 3}
-  newBuildingEntryPrefab: {fileID: 7831948913894517023, guid: 3ecc8e9300e84334f876aedcccc375fd, type: 3}
+  constructionSiteEntryPrefab: {fileID: 7022509754344602647, guid: a572f0d92b4451a4eaac20dda31dea92, type: 3}
   jobEntryPrefab: {fileID: 7022509754344602647, guid: 4013d66f17363954bbcb656934704ceb, type: 3}
   warehouseInventoryPrefab: {fileID: 4307853699895608301, guid: edff4445a7aa4834393f1f053ee31859, type: 3}
+  selectionColor: {r: 0.8235294, g: 0.8, b: 0.6313726, a: 1}
+--- !u!114 &5202568110408387995
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2977084469190450195}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9a0cccbdf3999004d88d09e3765a9c84, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  panelObjectType: 8
+  newBuildingEntryPrefab: {fileID: 7022509754344602647, guid: 04a3cfc4876789945979ae6925457dee, type: 3}
+  selectionColor: {r: 0.8235294, g: 0.8, b: 0.6313726, a: 1}
 --- !u!114 &6373789344028582501
 MonoBehaviour:
   m_ObjectHideFlags: 0
