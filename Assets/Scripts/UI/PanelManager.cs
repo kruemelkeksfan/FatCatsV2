@@ -86,10 +86,14 @@ public class PanelManager : MonoBehaviour
 		int freePanelPosition = -1;
 		for(int i = 0; i < openPanels.Length; ++i)
 		{
-			if(openPanels[i] == null)
+			if(freePanelPosition < 0 && openPanels[i] == null)
 			{
 				freePanelPosition = i;
-				break;
+			}
+			else if(openPanelObjects[i] == panelObject)
+			{
+				StartCoroutine(HighlightPanel(openPanels[i]));
+				return;
 			}
 		}
 		if(freePanelPosition < 0)
@@ -143,6 +147,14 @@ public class PanelManager : MonoBehaviour
 				queuedPanelUpdates.Add(openPanelObjects[i]);
 			}
 		}
+	}
+
+	private IEnumerator HighlightPanel(RectTransform panel)
+	{
+		Image headingBackground = panel.GetChild(0).GetComponent<Image>();
+		headingBackground.enabled = false;
+		yield return new WaitForSecondsRealtime(0.1f);
+		headingBackground.enabled = true;
 	}
 
 	public RectTransform GetCharacterPanel()
