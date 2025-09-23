@@ -742,7 +742,7 @@ public class BuildingController : PanelObject
 				// Quality Loss: y = (1 / (10 * x)) with y: Quality Loss, x: current Quality in %
 				if(buildings[i].quality > Mathf.Epsilon)
 				{
-					buildings[i].quality -= (1.0f / (buildings[i].quality * 100.0f * 10.0f * buildingDegradationFactor)) / 100.0f;
+					buildings[i].quality -= ((1.0f / (buildings[i].quality * 100.0f * 10.0f)) / 100.0f) * buildingDegradationFactor;
 				}
 				if(buildings[i].quality <= Mathf.Epsilon)
 				{
@@ -1006,10 +1006,9 @@ public class BuildingController : PanelObject
 		// Quality Loss: y = (1 / (10 * x)) with y: Quality Loss, x: current Quality in %
 		float currentQuality = quality;
 		int daysToLive = 0;
-		float degradationFactor = 100.0f * 10.0f * buildingDegradationFactor;
 		while(currentQuality > Mathf.Epsilon)
 		{
-			currentQuality -= (1.0f / (currentQuality * degradationFactor)) / 100.0f;
+			currentQuality -= ((1.0f / (currentQuality * 100.0f * 10.0f)) / 100.0f) * buildingDegradationFactor;
 			++daysToLive;
 		}
 
