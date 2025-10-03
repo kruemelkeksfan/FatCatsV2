@@ -1,25 +1,57 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using SQLite;
 
 public class PopulationController : MonoBehaviour
 {
-	[Serializable]
-	public struct PopulationGroup
+	public class PopulationGroup
 	{
-		public int age;
-		public int income;
-		public int savings;
-		public int count;
-		public float satisfaction;
-
-		public PopulationGroup(int age, int income, int savings, int count)
+		[PrimaryKey, AutoIncrement]
+		public int Id
 		{
-			this.age = age;
-			this.income = income;
-			this.savings = savings;
-			this.count = count;
-			satisfaction = 1.0f;
+			get; set;
+		}
+
+		public int Birthyear
+		{
+			get; set;
+		}
+		public int Income
+		{
+			get; set;
+		}
+		public int Savings
+		{
+			get; set;
+		}
+		public int Count
+		{
+			get; set;
+		}
+		public float Satisfaction
+		{
+			get; set;
+		}
+
+		public PopulationGroup()
+		{
+			Id = 0;
+			Birthyear = 0;
+			Income = 0;
+			Savings = 0;
+			Count = 0;
+			Satisfaction = 0.0f;
+		}
+
+		public PopulationGroup(int birthyear, int income, int savings, int count)
+		{
+			Id = 0;
+			Birthyear = birthyear;
+			Income = income;
+			Savings = savings;
+			Count = count;
+			Satisfaction = 0.0f;
 		}
 	}
 
@@ -45,25 +77,48 @@ public class PopulationController : MonoBehaviour
 	// TODO: Indexing based on Age or Wage
 	// TODO: Wage Groups
 
-	// TODO: Unemployment Compensation: ensure, that nobody works for wages <= Unemployment Compensation so that the Population Group Sorting stays intact
+	// TODO: Unemployment Compensation: probably best approach would be to leave income as is and just award unemployment compensation at the start of each Town update tick
+	// downside: people would not compare their job income to unemployment compensation when deciding for a job
+	// potential solution: also award (partial) compensation to people who work for less than the unemployment compensation
+	// if you want to implement it via income anyways, please check all Usages of "Income" in the whole project - comparisons like "Income > 0" are made in many places
 
 	[SerializeField] private NeedData[] needData = null;
 	[SerializeField] private int startingPopulation = 10;
 	[SerializeField] private float maxPopulationGainFactor = 0.2f;
 	[SerializeField] private int startingMoney = 10;
+	private TimeController timeController = null;
 	private Market market = null;
 	private BuildingController buildingController = null;
-	private PopulationGroup[] populationGroups = null;
-	private Dictionary<int, PopulationGroup> populationByAge = null;
-	private Dictionary<int, PopulationGroup> populationByWage = null;
+	private SQLiteConnection database = null;
 	private int totalPopulation = 0;
 
-	private void Awake()
+	private void Start()
 	{
+		timeController = TimeController.GetInstance();
 		market = gameObject.GetComponent<Market>();
 		buildingController = gameObject.GetComponent<BuildingController>();
 
-		AddPopulationGroup(0, startingPopulation * startingMoney, startingPopulation);
+		// TODO: Save to File when Savegames are being implemented
+		// TODO: Check Database Size
+		// 1. Create a connection to the database.
+		// The special ":memory:" in-memory database and
+		// URIs like "file:///somefile" are also supported
+		database = new SQLiteConnection(":memory:");
+		// 2. Once you have defined your entity, you can automatically
+		// generate tables in your database by calling CreateTable
+		database.CreateTable<PopulationGroup>();
+		// TODO: Ensure regular Vacuum
+		// 4.b You can also make queries at a low-level using the Query method
+		// var players = db.Query<Player>("SELECT * FROM Player WHERE Id = ?", 1);
+		// foreach (Player player in players)
+		// {
+		//   Debug.Log($"Player with ID 1 is called {player.Name}");
+		// }
+		// 5. You can perform low-level updates to the database using the Execute
+		// method, for example for running PRAGMAs or VACUUM
+		// db.Execute("VACUUM");
+
+		AddPopulationGroup(0, startingPopulation * startingMoney, startingPopulation, -20);
 		totalPopulation = startingPopulation;
 	}
 
@@ -71,14 +126,19 @@ public class PopulationController : MonoBehaviour
 	{
 		totalPopulation = 0;
 		int populationGain = 0;
-		for(int i = 0; i < populationGroups.Length; ++i)
+		// 4.a The most straightforward way to query for data
+		// is using the Table method. This can take predicates
+		// for constraining via WHERE clauses and/or adding ORDER BY clauses
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Income);
+		foreach(PopulationGroup populationGroup in populationQuery)
 		{
-			if(populationGroups[i].count <= 0)
+			// TODO: Check if going from richest to poorest?
+			if(populationGroup.Count <= 0)
 			{
 				continue;
 			}
 
-			populationGroups[i].savings += populationGroups[i].income * populationGroups[i].count;
+			populationGroup.Savings += populationGroup.Income * populationGroup.Count;
 
 			List<Tuple<Good, MarketOffer>> shoppingCart = new List<Tuple<Good, MarketOffer>>();
 			float minEssentialNeedSatisfaction = 1.0f;
@@ -88,8 +148,8 @@ public class PopulationController : MonoBehaviour
 			{
 				shoppingCart.Clear();
 
-				int budget = Mathf.FloorToInt(populationGroups[i].savings * need.budgetPercentage);
-				int needAmount = Mathf.CeilToInt(need.maxBuyAmount * populationGroups[i].count);
+				int budget = Mathf.FloorToInt(populationGroup.Savings * need.budgetPercentage);
+				int needAmount = Mathf.CeilToInt(need.maxBuyAmount * populationGroup.Count);
 
 				// Step 1: Buy Cheapest until maximum Demand is satisfied or Budget is exhausted
 				LinkedList<Tuple<Good, MarketOffer>> offers = new LinkedList<Tuple<Good, MarketOffer>>(market.GetSortedOffers(need.goodCategory, Market.CompareOfferPrice));
@@ -206,17 +266,17 @@ public class PopulationController : MonoBehaviour
 				}
 				avgPerceivedQuality /= totalAmount;
 
-				populationGroups[i].savings -= totalPrice;
+				populationGroup.Savings -= totalPrice;
 
 				// Step 4: Calculate Satisfaction
 				float needSatisfaction = 0.0f;
-				if(totalAmount < need.minBuyAmount * populationGroups[i].count)
+				if(totalAmount < need.minBuyAmount * populationGroup.Count)
 				{
-					needSatisfaction = (totalAmount / (need.minBuyAmount * populationGroups[i].count)) * 0.5f;
+					needSatisfaction = (totalAmount / (need.minBuyAmount * populationGroup.Count)) * 0.5f;
 				}
-				else if(totalAmount < (need.maxBuyAmount * populationGroups[i].count))
+				else if(totalAmount < (need.maxBuyAmount * populationGroup.Count))
 				{
-					needSatisfaction = 0.5f + (totalAmount / (need.maxBuyAmount * populationGroups[i].count)) * 0.25f;
+					needSatisfaction = 0.5f + (totalAmount / (need.maxBuyAmount * populationGroup.Count)) * 0.25f;
 				}
 				else
 				{
@@ -231,18 +291,20 @@ public class PopulationController : MonoBehaviour
 				++j;
 			}
 			avgNeedSatisfaction /= needData.Length;
-			populationGroups[i].satisfaction = avgNeedSatisfaction > minEssentialNeedSatisfaction ? avgNeedSatisfaction : minEssentialNeedSatisfaction;
+			populationGroup.Satisfaction = avgNeedSatisfaction > minEssentialNeedSatisfaction ? avgNeedSatisfaction : minEssentialNeedSatisfaction;
 
 			// Update Population
-			if(populationGroups[i].satisfaction > 0.5f)
+			if(populationGroup.Satisfaction > 0.5f)
 			{
-				populationGain += Mathf.FloorToInt(((populationGroups[i].satisfaction - 0.5f) * 2.0f) * populationGroups[i].count * maxPopulationGainFactor);
+				populationGain += Mathf.FloorToInt(((populationGroup.Satisfaction - 0.5f) * 2.0f) * populationGroup.Count * maxPopulationGainFactor);
 			}
 			else
 			{
-				populationGain -= Mathf.CeilToInt((1.0f - (populationGroups[i].satisfaction * 2.0f)) * populationGroups[i].count * maxPopulationGainFactor);
+				populationGain -= Mathf.CeilToInt((1.0f - (populationGroup.Satisfaction * 2.0f)) * populationGroup.Count * maxPopulationGainFactor);
 			}
-			totalPopulation += populationGroups[i].count;
+			totalPopulation += populationGroup.Count;
+
+			database.Update(populationGroup);
 		}
 
 		// Secure Minimum Population
@@ -254,22 +316,25 @@ public class PopulationController : MonoBehaviour
 		// Grow Population
 		if(populationGain >= 0)
 		{
-			populationGroups[populationGroups.Length - 1].count += populationGain;
+			AddPopulationGroup(0, 0, populationGain);
 		}
 		// Un-grow Population
 		else
 		{
 			int peopleLeftToDisappear = -populationGain;
-			for(int i = populationGroups.Length - 1; i >= 0; --i)
+			populationQuery = database.Table<PopulationGroup>().OrderBy<float>(populationGroup => populationGroup.Satisfaction);
+			foreach(PopulationGroup populationGroup in populationQuery)
 			{
-				int despawnAmount = Mathf.Min(populationGroups[i].count, peopleLeftToDisappear);
-				populationGroups[i].count -= despawnAmount;
+				int despawnAmount = Mathf.Min(populationGroup.Count, peopleLeftToDisappear);
+				populationGroup.Count -= despawnAmount;
 				peopleLeftToDisappear -= despawnAmount;
 
-				if(i < populationGroups.Length - 1)
+				if(populationGroup.Income > 0)
 				{
-					buildingController.KillTownWorkers(populationGroups[i].income, despawnAmount);
+					buildingController.KillTownWorkers(populationGroup.Income, despawnAmount);
 				}
+
+				database.Update(populationGroup);
 			}
 			if(peopleLeftToDisappear > 0)
 			{
@@ -277,68 +342,72 @@ public class PopulationController : MonoBehaviour
 			}
 		}
 		totalPopulation += populationGain;
+
+		// Delete extinct Population Groups
+		int heritage = 0;
+		populationQuery = database.Table<PopulationGroup>().Where(populationGroup => populationGroup.Count == 0);
+		foreach(PopulationGroup populationGroup in populationQuery)
+		{
+			heritage += populationGroup.Savings;
+			database.Delete(populationGroup);
+		}
+		// Der Teufel scheißt auf den größten Haufen
+		// Give all Money of extinct Population Groups to richest Population Groups
+		PopulationGroup richestPopulationGroup = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Income).FirstOrDefault();
+		richestPopulationGroup.Savings += heritage;
+		database.Update(richestPopulationGroup);
 	}
 
-	public void AddPopulationGroup(int income, int savings, int count)
+	public void AddPopulationGroup(int income, int savings, int count, int birthyear = int.MinValue)
 	{
-		// Initialize new populationGroups-Array if it is not set up yet
-		if(populationGroups == null)
+		// PopulationGroup populationGroup = new PopulationGroup(1995, 0, 0, 1);
+		// database.Insert(populationGroup);
+
+		if(birthyear <= int.MinValue)
 		{
-			populationGroups = new PopulationGroup[1];
-			populationGroups[0] = new PopulationGroup(0, income, savings, count); // TODO: Set Age
-			return;
+			birthyear = timeController.GetCurrentYear();
 		}
 
-		// Add Population Group to equivalent Population Group in Array, if existent
-		for(int i = 0; i < populationGroups.Length; ++i)
+		// Add Population Group to equivalent Population Group, if existent
+		PopulationGroup populationGroup = database.Table<PopulationGroup>().Where(populationGroup => (populationGroup.Birthyear == birthyear && populationGroup.Income == income)).FirstOrDefault();
+		if(populationGroup != null)
 		{
-			if(populationGroups[i].income == income)
-			{
-				populationGroups[i].count += count;
-				return;
-			}
+			populationGroup.Count += count;
+			populationGroup.Savings += savings;
+			database.Update(populationGroup);
+			return;
 		}
 
 		// If the Population Group does not exist yet, insert it
 		// Sort Population Groups descending, so that rich People get to buy Stuff first and starve last
-		PopulationGroup[] newPopulationGroups = new PopulationGroup[populationGroups.Length + 1];
-		bool inserted = false;
-		for(int i = 0; i < newPopulationGroups.Length; ++i)
-		{
-			if(i < populationGroups.Length && populationGroups[i].income > income)
-			{
-				newPopulationGroups[i] = populationGroups[i];
-			}
-			else
-			{
-				if(!inserted)
-				{
-					newPopulationGroups[i] = new PopulationGroup(0, income, savings, count); // TODO: Set Age
-					inserted = true;
-				}
-				else
-				{
-					newPopulationGroups[i] = populationGroups[i - 1];
-				}
-			}
-		}
-
-		populationGroups = newPopulationGroups;
+		populationGroup = new PopulationGroup(birthyear, income, savings, count);
+		database.Insert(populationGroup);
 	}
 
-	public bool Fire(int income, int count)
+	public bool ChangeIncome(int oldIncome, int newIncome, int count)
 	{
 		if(count <= 0)
 		{
 			return true;
 		}
 
-		for(int i = 0; i < populationGroups.Length; ++i)
+		int peopleLeftToChange = count;
+		// Old People will change their Jobs first, for better or worse
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().Where(populationGroup => populationGroup.Income == oldIncome).OrderBy<int>(populationGroup => populationGroup.Birthyear);
+		foreach(PopulationGroup populationGroup in populationQuery)
 		{
-			if(populationGroups[i].income == income && populationGroups[i].count >= count)
+			int changeAmount = Mathf.Min(peopleLeftToChange, populationGroup.Count);
+			int transferredMoney = Mathf.FloorToInt(populationGroup.Savings * (changeAmount / populationGroup.Count));
+
+			populationGroup.Count -= changeAmount;
+			populationGroup.Savings -= transferredMoney;
+			database.Update(populationGroup);
+
+			AddPopulationGroup(newIncome, transferredMoney, changeAmount, populationGroup.Birthyear);
+			
+			peopleLeftToChange -= changeAmount;
+			if(peopleLeftToChange <= 0)
 			{
-				populationGroups[i].count -= count;
-				populationGroups[populationGroups.Length - 1].count += count;
 				return true;
 			}
 		}
@@ -351,20 +420,28 @@ public class PopulationController : MonoBehaviour
 	{
 		Dictionary<Building, int> hireList = new Dictionary<Building, int>();           // Building, Count
 		Dictionary<int, int> fireList = new Dictionary<int, int>();                     // Wage, Count
+
+		if(openPositions.Count <= 0)
+		{
+			new Tuple<Dictionary<Building, int>, Dictionary<int, int>>(hireList, fireList);
+		}
+
 		LinkedListNode<Tuple<Building, int>> currentOpenPosition = openPositions.First; // Building, Number of open Positions
-		int emptyPopulationGroups = 0;
-		int i = populationGroups.Length - 1;    // Start with poorest Population Group
-		while(currentOpenPosition != null && i >= 0)
+		// Order by Income primarily and by Age secondarily
+		// We need this to give young People better Job Opportunities and simulate Age Discrimination
+		PopulationGroup[] populationGroups = database.Table<PopulationGroup>().OrderBy<int>(populationGroup => populationGroup.Income).ThenByDescending<int>(populationGroup => populationGroup.Birthyear).ToArray();
+		int i = 0;
+		while(currentOpenPosition != null && i < populationGroups.Length)
 		{
 			// Break if new Job is payed worse than the currently worst payed Job
-			if(currentOpenPosition.Value.Item1.wage <= populationGroups[i].income)
+			if(currentOpenPosition.Value.Item1.wage <= populationGroups[i].Income)
 			{
 				break;
 			}
 
 			Building currentOpenPositionBuilding = currentOpenPosition.Value.Item1;
+			int hireCount = Mathf.Min(currentOpenPosition.Value.Item2, populationGroups[i].Count);
 
-			int hireCount = Mathf.Min(currentOpenPosition.Value.Item2, populationGroups[i].count);
 			// Hire List
 			if(hireList.ContainsKey(currentOpenPositionBuilding))
 			{
@@ -375,118 +452,63 @@ public class PopulationController : MonoBehaviour
 				hireList.Add(currentOpenPositionBuilding, hireCount);
 			}
 			// Fire List
-			if(i < populationGroups.Length - 1) // If the current PopulationGroup already has work a.k.a. is not the poorest PopulationGroup
+			if(populationGroups[i].Income > 0) // If the current PopulationGroup already has work
 			{
-				if(fireList.ContainsKey(populationGroups[i].income))
+				if(fireList.ContainsKey(populationGroups[i].Income))
 				{
-					fireList[populationGroups[i].income] += hireCount;
+					fireList[populationGroups[i].Income] += hireCount;
 				}
 				else
 				{
-					fireList.Add(populationGroups[i].income, hireCount);
+					fireList.Add(populationGroups[i].Income, hireCount);
 				}
 			}
 
 			// Let poor People resign their Jobs ...
-			populationGroups[i].count -= hireCount;
+			populationGroups[i].Count -= hireCount;
 
 			// ... and let them take better Jobs
-			bool hiredSuccessfully = false;
-			for(int j = 0; j < populationGroups.Length; ++j)
+			if(populationGroups[i].Count > 0)
 			{
-				if(populationGroups[j].income == currentOpenPositionBuilding.wage)
-				{
-					populationGroups[j].count += hireCount;
-					hiredSuccessfully = true;
-					break;
-				}
+				AddPopulationGroup(currentOpenPositionBuilding.wage, 0, hireCount, populationGroups[i].Birthyear);
 			}
-			if(!hiredSuccessfully)
+			else
 			{
-				AddPopulationGroup(currentOpenPositionBuilding.wage, 0, hireCount);
+				AddPopulationGroup(currentOpenPositionBuilding.wage, populationGroups[i].Savings, hireCount, populationGroups[i].Birthyear);
+				populationGroups[i].Savings = 0;
 			}
 
 			if(hireList[currentOpenPositionBuilding] >= currentOpenPosition.Value.Item2)
 			{
 				currentOpenPosition = currentOpenPosition.Next;
-			}
-			if(populationGroups[i].count <= 0)
-			{
-				++emptyPopulationGroups;
-				--i;
-			}
-		}
-
-		// TODO: Remove after some Playtesting
-		if(emptyPopulationGroups > 0)
-		{
-			Debug.Log("Empty Population Groups: " + emptyPopulationGroups);
-		}
-
-		if(emptyPopulationGroups >= 10)
-		{
-			PopulationGroup[] newPopulationGroups = new PopulationGroup[populationGroups.Length - emptyPopulationGroups];
-			int skippedPopulationGroups = 0;
-			for(int j = 0; j < newPopulationGroups.Length; ++j)
-			{
-				if(populationGroups[j].count > 0 || (j + skippedPopulationGroups) >= (populationGroups.Length - 1)) // Never delete last Population Group (we will need it again)
+				if(currentOpenPosition == null)
 				{
-					newPopulationGroups[j] = populationGroups[j + skippedPopulationGroups];
-				}
-				else
-				{
-					populationGroups[populationGroups.Length - 1].savings += populationGroups[j + skippedPopulationGroups].savings; // Transfer Savings to avoid Money Sink
-					++skippedPopulationGroups;
+					database.Update(populationGroups[i]);
 				}
 			}
-			populationGroups = newPopulationGroups;
+			if(populationGroups[i].Count <= 0)
+			{
+				database.Update(populationGroups[i]);
+				++i;
+			}
 		}
 
 		return new Tuple<Dictionary<Building, int>, Dictionary<int, int>>(hireList, fireList);
 	}
 
-	public bool ChangeIncome(int oldIncome, int newIncome, int count)
-	{
-		if(count <= 0)
-		{
-			return true;
-		}
-
-		for(int i = 0; i < populationGroups.Length; ++i)
-		{
-			if(populationGroups[i].income == oldIncome && populationGroups[i].count >= count)
-			{
-				populationGroups[i].count -= count;
-
-				for(int j = 0; j < populationGroups.Length; ++j)
-				{
-					if(populationGroups[j].income == newIncome)
-					{
-						populationGroups[i].count += count;
-						return true;
-					}
-				}
-
-				AddPopulationGroup(newIncome, 0, count);
-
-				return true;
-			}
-		}
-
-		return false;
-	}
-
 	public int CalculateAverageIncome()
 	{
 		float totalIncome = 0.0f;
-		foreach(PopulationGroup populationGroup in populationGroups)
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>();
+		foreach(PopulationGroup populationGroup in populationQuery)
 		{
-			if(populationGroup.count <= 0)
+			if(populationGroup.Count <= 0)
 			{
 				continue;
 			}
 
-			totalIncome += populationGroup.income * populationGroup.count;
+			Debug.Log(populationGroup.Income + " " + populationGroup.Count);
+			totalIncome += populationGroup.Income * populationGroup.Count;
 		}
 
 		return Mathf.RoundToInt(totalIncome / totalPopulation);
@@ -495,22 +517,18 @@ public class PopulationController : MonoBehaviour
 	public int CalculateAverageSavings()
 	{
 		float totalSavings = 0.0f;
-		foreach(PopulationGroup populationGroup in populationGroups)
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>();
+		foreach(PopulationGroup populationGroup in populationQuery)
 		{
-			if(populationGroup.count <= 0)
+			if(populationGroup.Count <= 0)
 			{
 				continue;
 			}
 
-			totalSavings += populationGroup.savings;
+			totalSavings += populationGroup.Savings;
 		}
 
 		return Mathf.RoundToInt(totalSavings / totalPopulation);
-	}
-
-	public PopulationGroup[] GetPopulationGroups()
-	{
-		return populationGroups;
 	}
 
 	public int GetTotalPopulation()
@@ -521,11 +539,12 @@ public class PopulationController : MonoBehaviour
 	public int GetUnemployedPopulation()
 	{
 		int unemployed = 0;
-		for(int i = populationGroups.Length - 1; i >= 0; --i)
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().Where(populationGroup => populationGroup.Income <= 0);
+		foreach(PopulationGroup populationGroup in populationQuery)
 		{
-			if(populationGroups[i].income <= 0)
+			if(populationGroup.Income <= 0)
 			{
-				unemployed += populationGroups[i].count;
+				unemployed += populationGroup.Count;
 			}
 			else
 			{

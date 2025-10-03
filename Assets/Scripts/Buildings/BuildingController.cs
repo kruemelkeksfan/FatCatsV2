@@ -399,7 +399,7 @@ public class BuildingController : PanelObject
 						}
 						else
 						{
-							populationController.Fire(currentBuilding.wage, 1);
+							populationController.ChangeIncome(currentBuilding.wage, 0, 1);
 							currentBuilding.townWorkers -= 1;
 						}
 					}
@@ -661,7 +661,7 @@ public class BuildingController : PanelObject
 			int wantedTownWorkerCount = buildings[i].wantedWorkers - buildings[i].playerWorkers.Count;
 			if(buildings[i].townWorkers > wantedTownWorkerCount)
 			{
-				populationController.Fire(buildings[i].wage, buildings[i].townWorkers - wantedTownWorkerCount);
+				populationController.ChangeIncome(buildings[i].wage, 0, buildings[i].townWorkers - wantedTownWorkerCount);
 				buildings[i].townWorkers = wantedTownWorkerCount;
 			}
 			if(buildings[i].wantedWorkers > 0)
@@ -681,7 +681,7 @@ public class BuildingController : PanelObject
 				{
 					fired = true;
 
-					populationController.Fire(buildings[i].wage, buildings[i].townWorkers);
+					populationController.ChangeIncome(buildings[i].wage, 0, buildings[i].townWorkers);
 					buildings[i].townWorkers = 0;
 					buildings[i].wantedWorkers = buildings[i].playerWorkers.Count;
 				}
@@ -935,7 +935,7 @@ public class BuildingController : PanelObject
 
 		if(fireWorkers)
 		{
-			populationController.Fire(building.wage, building.townWorkers);
+			populationController.ChangeIncome(building.wage, 0, building.townWorkers);
 			Player[] firedPlayerWorkers = building.playerWorkers.ToArray();
 			foreach(Player player in firedPlayerWorkers)
 			{
@@ -959,7 +959,7 @@ public class BuildingController : PanelObject
 		building.underConstruction = false;
 		constructionSites.Remove(building);
 
-		populationController.Fire(building.wage, building.townWorkers);
+		populationController.ChangeIncome(building.wage, 0, building.townWorkers);
 		Player[] firedPlayerWorkers = building.playerWorkers.ToArray();
 		foreach(Player player in firedPlayerWorkers)
 		{
@@ -979,7 +979,7 @@ public class BuildingController : PanelObject
 			warehouseInventories[ownerName].ChangeBulkCapacity(Mathf.FloorToInt(-building.size * building.buildingStyle.baseQuality * warehouseBulkPerSize));
 		}
 
-		populationController.Fire(building.wage, building.townWorkers);
+		populationController.ChangeIncome(building.wage, 0, building.townWorkers);
 		Player[] firedPlayerWorkers = building.playerWorkers.ToArray();
 		foreach(Player player in firedPlayerWorkers)
 		{

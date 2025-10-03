@@ -41,7 +41,7 @@ public class Town : PanelObject, IListener
 
 		RectTransform statPanel = (RectTransform)panel.GetChild(1);
 
-		PopulationController.PopulationGroup[] populationGroups = populationController.GetPopulationGroups();
+		// PopulationController.PopulationGroup[] populationGroups = populationController.GetPopulationGroups();
 		int totalPopulation = populationController.GetTotalPopulation();
 
 		statPanel.GetChild(2).GetComponent<TMP_Text>().text = totalPopulation.ToString();
@@ -52,7 +52,8 @@ public class Town : PanelObject, IListener
 			int.MaxValue, 0, int.MinValue,
 			int.MaxValue, 0, int.MinValue
 		};
-		foreach(PopulationController.PopulationGroup populationGroup in populationGroups)
+		// TODO: New Stat Screen
+		/*foreach(PopulationController.PopulationGroup populationGroup in populationGroups)
 		{
 			if(populationGroup.count <= 0)
 			{
@@ -96,7 +97,7 @@ public class Town : PanelObject, IListener
 		}
 		townData[1] = Mathf.RoundToInt((float)townData[1] / (float)totalPopulation);
 		townData[4] = Mathf.RoundToInt((float)townData[4] / (float)totalPopulation);
-		townData[7] = Mathf.RoundToInt((float)townData[7] / (float)totalPopulation);
+		townData[7] = Mathf.RoundToInt((float)townData[7] / (float)totalPopulation);*/
 
 		for(int i = 0; i < 9; ++i)
 		{

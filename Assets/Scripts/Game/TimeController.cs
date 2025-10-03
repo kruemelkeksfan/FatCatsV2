@@ -184,7 +184,7 @@ public class TimeController : MonoBehaviour
 		double clockTime = (gameTime % 1.0) * 24.0;
 		int hour = (int) clockTime;
 		int minute = (int) ((clockTime % 1) * 60.0);
-		return "Year " + (((int) gameTime) / daysPerYear) + ",  "
+		return "Year " + GetCurrentYear() + ",  "
 			+ "Day " + (((int) gameTime) % daysPerYear) + ",  "
 			+ hour.ToString("00") + ":" + minute.ToString("00");
 	}
@@ -212,6 +212,11 @@ public class TimeController : MonoBehaviour
 	public double GetTime()
 	{
 		return gameTime;
+	}
+
+	public int GetCurrentYear()
+	{
+		return ((int) gameTime) / daysPerYear;
 	}
 
 	public void SetTimeScale(int timeScaleIndex)
