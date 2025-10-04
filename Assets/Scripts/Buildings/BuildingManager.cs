@@ -40,6 +40,7 @@ public class Building
 	public List<Player> playerWorkers;
 	public int wantedWorkers;
 	public int wage;
+	public int wageGroup;
 	public Inventory connectedInventory;
 	public Player owner;
 	public bool underConstruction;
@@ -65,6 +66,7 @@ public class Building
 		playerWorkers = new List<Player>(1);
 		wantedWorkers = 0;
 		wage = 1;
+		wageGroup = 0;
 		underConstruction = true;   // Has to be true on Initialization to know whether a Building is freshly built or renovated in BuildingController
 		decayWarningIssued = false;
 	}

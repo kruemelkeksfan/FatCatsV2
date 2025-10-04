@@ -15,6 +15,7 @@ public class BuildingController : PanelObject
 	[SerializeField] private RectTransform constructionSiteEntryPrefab = null;
 	[SerializeField] private Inventory warehouseInventoryPrefab = null;
 	[SerializeField] private Color selectionColor = new Color();
+	[SerializeField] private int wageGroupCount = 5;
 	private new Transform transform = null;
 	private GoodManager goodManager = null;
 	private InfoController infoController = null;
@@ -26,6 +27,7 @@ public class BuildingController : PanelObject
 	private Dictionary<string, Inventory> warehouseInventories = null;
 	private Building currentBuilding = null;
 	private int currentDestructionCount = 1;
+	private int currentWageGroupSetting = 0;
 
 	private static int CompareBuildings(Building lho, Building rho)
 	{
@@ -122,6 +124,51 @@ public class BuildingController : PanelObject
 		RectTransform topInfoBar = (RectTransform)panel.GetChild(1);
 		topInfoBar.GetChild(1).GetComponent<TMP_Text>().text = populationController.GetUnemployedPopulation() + "/" + populationController.GetTotalPopulation();
 		topInfoBar.GetChild(3).GetComponent<TMP_Text>().text = populationController.CalculateAverageIncome() + "G";
+
+		TMP_Dropdown wageGroupSettingDropdown = topInfoBar.GetChild(5).GetComponent<TMP_Dropdown>();
+		wageGroupSettingDropdown.ClearOptions();
+		for(int j = 1; j <= wageGroupCount; ++j)
+		{
+			wageGroupSettingDropdown.options.Add(new TMP_Dropdown.OptionData(MathUtil.GetRomanNumber(j)));
+		}
+		wageGroupSettingDropdown.value = currentWageGroupSetting;
+		wageGroupSettingDropdown.RefreshShownValue();
+		wageGroupSettingDropdown.onValueChanged.RemoveAllListeners();
+		wageGroupSettingDropdown.onValueChanged.AddListener(delegate
+		{
+			currentWageGroupSetting = wageGroupSettingDropdown.value;
+		});
+
+		TMP_InputField wageGroupField = topInfoBar.GetChild(6).GetComponent<TMP_InputField>();
+		wageGroupField.text = populationController.GetWage(playerName, currentWageGroupSetting).ToString();
+		wageGroupField.onValueChanged.RemoveAllListeners();
+		wageGroupField.onValueChanged.AddListener(delegate
+		{
+			int oldWage = populationController.GetWage(playerName, currentWageGroupSetting);
+			int newWage = wageGroupField.text != string.Empty ? Mathf.Max(Int32.Parse(wageGroupField.text), 1) : 1;
+
+			populationController.SetWage(playerName, currentWageGroupSetting, newWage, wageGroupCount);
+
+			if(jobsByWage.ContainsKey(oldWage))
+			{
+				Building[] wageBuildings = jobsByWage[oldWage].ToArray();
+				foreach(Building building in wageBuildings)
+				{
+					jobsByWage[oldWage].Remove(building);
+					if(!jobsByWage.ContainsKey(newWage))
+					{
+						jobsByWage.Add(newWage, new List<Building>());
+					}
+					jobsByWage[newWage].Add(currentBuilding);
+
+					populationController.ChangeIncome(oldWage, newWage, building.townWorkers);
+
+					building.wage = newWage;
+				}
+			}
+
+			panelManager.QueuePanelUpdate(this);
+		});
 
 		// LIST
 		RectTransform listParent = (RectTransform)panel.GetChild(2).GetChild(0).GetChild(0);
@@ -322,26 +369,36 @@ public class BuildingController : PanelObject
 			TMP_Text workerText = jobEntry.GetChild(7).GetComponent<TMP_Text>();
 			if(playerOwned)
 			{
-				// TODO: Implement Wage Groups
-				/*
-				wageAmountField.text = currentBuilding.jobs[j].wage.ToString();
-				wageAmountField.onEndEdit.RemoveAllListeners();
-				wageAmountField.onEndEdit.AddListener(delegate
+				wageDropdown.ClearOptions();
+				for(int j = 1; j <= wageGroupCount; ++j)
 				{
-					int amount = wageAmountField.text != string.Empty ? Mathf.Max(Int32.Parse(wageAmountField.text), 1) : 1;
-					if(populationController.ChangeIncome(currentBuilding.jobs[localJ].wage, amount, currentBuilding.jobs[localJ].townWorkers))
+					wageDropdown.options.Add(new TMP_Dropdown.OptionData(MathUtil.GetRomanNumber(j)));
+				}
+				wageDropdown.value = currentBuilding.wageGroup;
+				wageDropdown.RefreshShownValue();
+				wageDropdown.onValueChanged.RemoveAllListeners();
+				wageDropdown.onValueChanged.AddListener(delegate
+				{
+					int newWage = populationController.GetWage(playerName, wageDropdown.value);
+					if(populationController.ChangeIncome(currentBuilding.wage, newWage, currentBuilding.townWorkers))
 					{
-						currentBuilding.jobs[localJ].wage = amount;
-
-						if(!jobsByWage.ContainsKey(amount))
+						if(jobsByWage.ContainsKey(currentBuilding.wage))
 						{
-							jobsByWage.Add(amount, new List<Tuple<int, int>>());
+							jobsByWage[currentBuilding.wage].Remove(currentBuilding);
 						}
-						jobsByWage[amount].Add(new Tuple<int, int>(buildingId, localJ));
+
+						currentBuilding.wage = newWage;
+						currentBuilding.wageGroup = wageDropdown.value;
+
+						if(!jobsByWage.ContainsKey(newWage))
+						{
+							jobsByWage.Add(newWage, new List<Building>());
+						}
+						jobsByWage[newWage].Add(currentBuilding);
 					}
 
 					panelManager.QueuePanelUpdate(this);
-				});*/
+				});
 
 				workerAmountField.text = currentBuilding.wantedWorkers.ToString();
 				workerAmountField.onEndEdit.RemoveAllListeners();
@@ -592,7 +649,7 @@ public class BuildingController : PanelObject
 							{
 								materialQuality = currentBuilding.quality / currentBuilding.buildingStyle.baseQuality;
 								buildings.Remove(currentBuilding);
-							}							
+							}
 							for(int i = 0; i < constructionSite.storedBuildingMaterials.Count; ++i)
 							{
 								if(!(warehouseInventories.ContainsKey(playerName) && warehouseInventories[playerName].DepositGood(new Good(

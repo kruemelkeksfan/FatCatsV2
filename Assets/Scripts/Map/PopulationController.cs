@@ -91,6 +91,7 @@ public class PopulationController : MonoBehaviour
 	private BuildingController buildingController = null;
 	private SQLiteConnection database = null;
 	private int totalPopulation = 0;
+	private Dictionary<string, int[]> playerWageGroups = null;
 
 	private void Start()
 	{
@@ -120,6 +121,8 @@ public class PopulationController : MonoBehaviour
 
 		AddPopulationGroup(0, startingPopulation * startingMoney, startingPopulation, -20);
 		totalPopulation = startingPopulation;
+
+		playerWageGroups = new Dictionary<string, int[]>();
 	}
 
 	public void UpdatePopulation()
@@ -404,7 +407,7 @@ public class PopulationController : MonoBehaviour
 			database.Update(populationGroup);
 
 			AddPopulationGroup(newIncome, transferredMoney, changeAmount, populationGroup.Birthyear);
-			
+
 			peopleLeftToChange -= changeAmount;
 			if(peopleLeftToChange <= 0)
 			{
@@ -426,10 +429,10 @@ public class PopulationController : MonoBehaviour
 			new Tuple<Dictionary<Building, int>, Dictionary<int, int>>(hireList, fireList);
 		}
 
-		LinkedListNode<Tuple<Building, int>> currentOpenPosition = openPositions.First; // Building, Number of open Positions
 		// Order by Income primarily and by Age secondarily
 		// We need this to give young People better Job Opportunities and simulate Age Discrimination
 		PopulationGroup[] populationGroups = database.Table<PopulationGroup>().OrderBy<int>(populationGroup => populationGroup.Income).ThenByDescending<int>(populationGroup => populationGroup.Birthyear).ToArray();
+		LinkedListNode<Tuple<Building, int>> currentOpenPosition = openPositions.First; // Building, Number of open Positions
 		int i = 0;
 		while(currentOpenPosition != null && i < populationGroups.Length)
 		{
@@ -507,7 +510,6 @@ public class PopulationController : MonoBehaviour
 				continue;
 			}
 
-			Debug.Log(populationGroup.Income + " " + populationGroup.Count);
 			totalIncome += populationGroup.Income * populationGroup.Count;
 		}
 
@@ -553,5 +555,41 @@ public class PopulationController : MonoBehaviour
 		}
 
 		return unemployed;
+	}
+
+	public int GetWage(string playerName, int wageGroup)
+	{
+		if(playerWageGroups.ContainsKey(playerName))
+		{
+			return playerWageGroups[playerName][wageGroup];
+		}
+		else
+		{
+			return 1;
+		}
+	}
+
+	public void SetWage(string playerName, int wageGroup, int wage, int wageGroupCount)
+	{
+		if(playerWageGroups.ContainsKey(playerName))
+		{
+			playerWageGroups[playerName][wageGroup] = wage;
+		}
+		else
+		{
+			int[] newPlayerWageGroup = new int[wageGroupCount];
+			for(int i = 0; i < wageGroupCount; ++i)
+			{
+				if(i == wageGroup)
+				{
+					newPlayerWageGroup[i] = wage;
+				}
+				else
+				{
+					newPlayerWageGroup[i] = 1;
+				}
+			}
+			playerWageGroups.Add(playerName, newPlayerWageGroup);
+		}
 	}
 }

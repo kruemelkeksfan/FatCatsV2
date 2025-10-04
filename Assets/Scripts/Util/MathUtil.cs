@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
@@ -168,5 +169,39 @@ public static class MathUtil
 			int roundedDays = Mathf.RoundToInt(days);
 			return (Mathf.Approximately(days, roundedDays) ? roundedDays : days.ToString("F1")) + " days";
 		}
+	}
+
+	// Source: https://stackoverflow.com/questions/7040289/converting-integers-to-roman-numerals
+	public static string GetRomanNumber(int number)
+	{
+		if((number < 0) || (number >= 40))
+		{
+			return "Invalid Number";
+		}
+		if(number < 1)
+		{
+			return string.Empty;
+		}
+		if(number >= 10)
+		{
+			return "X" + GetRomanNumber(number - 10);
+		}
+		if(number >= 9)
+		{
+			return "IX" + GetRomanNumber(number - 9);
+		}
+		if(number >= 5)
+		{
+			return "V" + GetRomanNumber(number - 5);
+		}
+		if(number >= 4)
+		{
+			return "IV" + GetRomanNumber(number - 4);
+		}
+		if(number >= 1)
+		{
+			return "I" + GetRomanNumber(number - 1);
+		}
+		return "Impossible Number";
 	}
 }
