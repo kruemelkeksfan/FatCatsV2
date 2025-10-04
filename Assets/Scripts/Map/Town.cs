@@ -33,7 +33,7 @@ public class Town : PanelObject, IListener
 		TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Town);
 	}
 
-	public override void UpdatePanel(RectTransform panel, bool add = true)
+	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
 

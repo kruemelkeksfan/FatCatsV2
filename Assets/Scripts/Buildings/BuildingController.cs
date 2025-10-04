@@ -102,14 +102,13 @@ public class BuildingController : PanelObject
 		infoController = InfoController.GetInstance();
 	}
 
-	public override void UpdatePanel(RectTransform panel, bool add = true)
+	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
 
 		Inventory playerInventory = EnsurePlayerPresence();
 		if(playerInventory == null)
 		{
-			Debug.LogWarning("Player is not present but can access Building Menu of " + townName);
 			return;
 		}
 		Player player = playerInventory.GetPlayer();

@@ -28,9 +28,14 @@ public class ConstructionPanelController : PanelObject
 		availableBuildingStyles = buildingManager.GetBuildingStyles();
 	}
 
-	public override void UpdatePanel(RectTransform panel, bool add = true)
+	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
+
+		if(!EnsurePlayerPresence())
+		{
+			return;
+		}
 
 		panel.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = "Construction - " + townName;
 

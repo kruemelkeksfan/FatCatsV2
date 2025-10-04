@@ -1,39 +1,27 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PanelObject : MonoBehaviour
 {
 	[SerializeField] private PanelManager.PanelObjectType panelObjectType = PanelManager.PanelObjectType.Tile;
-	private HashSet<RectTransform> openPanels = null;
 	protected PanelManager panelManager = null;
 
 	protected virtual void Start()
 	{
-		openPanels = new HashSet<RectTransform>(1);
-
 		panelManager = PanelManager.GetInstance();
 	}
 
-	public virtual void UpdatePanel(RectTransform panel, bool add = true)
+	public virtual void UpdatePanel(RectTransform panel)
 	{
-		if(add && panel.gameObject.activeSelf)
+		if(!panel.gameObject.activeSelf)
 		{
-			openPanels.Add(panel);
-		}
-	}
-
-	public void UpdateAllPanels()
-	{
-		foreach(RectTransform panel in openPanels)
-		{
-			UpdatePanel(panel, false);
+			return;
 		}
 	}
 
 	protected Inventory EnsurePlayerPresence()
 	{
-		Inventory[] inventories = transform.parent.GetComponentsInChildren<Inventory>();	// Get Component in Siblings
+		// Get Component in Siblings universally, even when PanelObjects are on different Hierarchy Layers below Tile
+		Inventory[] inventories = transform.GetComponentInParent<Tile>().GetComponentsInChildren<Inventory>();
 		foreach(Inventory inventory in inventories)
 		{
 			if(inventory.IsLocalPlayerInventory())
@@ -42,17 +30,9 @@ public class PanelObject : MonoBehaviour
 			}
 		}
 
-		foreach(RectTransform panel in openPanels)
-		{
-			panelManager.ClosePanel(panel);
-		}
+		panelManager.ClosePanel(this);
 
 		return null;
-	}
-
-	public void ClosePanel(RectTransform panel)
-	{
-		openPanels.Remove(panel);
 	}
 
 	public PanelManager.PanelObjectType GetPanelObjectType()

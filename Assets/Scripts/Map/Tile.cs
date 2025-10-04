@@ -133,7 +133,7 @@ public class Tile : PanelObject, IListener
 		SetFogOfWar(Tile.FogOfWar.Partial);
 	}
 
-	public override void UpdatePanel(RectTransform panel, bool add = true)
+	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
 

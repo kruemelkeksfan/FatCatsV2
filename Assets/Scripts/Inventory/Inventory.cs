@@ -136,12 +136,17 @@ public class Inventory : PanelObject, IListener
 		UpdateAutoTrades();
 	}
 
-	public override void UpdatePanel(RectTransform panel, bool add = true)
+	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
 
 		if(townName != null)
 		{
+			if(!EnsurePlayerPresence())
+			{
+				return;
+			}
+
 			panel.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = "Inventory - " + townName;
 		}
 
@@ -261,7 +266,6 @@ public class Inventory : PanelObject, IListener
 					if(WithdrawGood(good, amount, true))
 					{
 						alternativeInventory.DepositGood(good, amount);
-						panelManager.QueuePanelUpdate(alternativeInventory);
 					}
 				});
 				transferButton.gameObject.SetActive(true);
@@ -440,6 +444,10 @@ public class Inventory : PanelObject, IListener
 		bulk += good.goodData.bulk * amount;
 
 		panelManager.QueuePanelUpdate(this);
+		if(lastMarket != null)
+		{
+			panelManager.QueuePanelUpdate(lastMarket);
+		}
 
 		return true;
 	}
@@ -465,6 +473,10 @@ public class Inventory : PanelObject, IListener
 			}
 
 			panelManager.QueuePanelUpdate(this);
+			if(lastMarket != null)
+			{
+				panelManager.QueuePanelUpdate(lastMarket);
+			}
 
 			if(townName == null && recalculatePathCost)
 			{
@@ -678,6 +690,10 @@ public class Inventory : PanelObject, IListener
 			if(localPlayerOwned)
 			{
 				panelManager.QueuePanelUpdate(this);
+				if(lastMarket != null)
+				{
+					panelManager.QueuePanelUpdate(lastMarket);
+				}
 			}
 
 			return true;

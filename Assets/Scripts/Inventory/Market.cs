@@ -52,7 +52,7 @@ public class Market : PanelObject
 		townName = gameObject.GetComponent<Town>().GetTownName();
 	}
 
-	public override void UpdatePanel(RectTransform panel, bool add = true)
+	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
 

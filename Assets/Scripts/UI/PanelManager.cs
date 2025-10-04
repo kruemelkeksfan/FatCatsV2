@@ -1,8 +1,6 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
@@ -23,7 +21,7 @@ public class PanelManager : MonoBehaviour
 	private EventSystem eventSystem = null;
 	private RectTransform[] openPanels = null;
 	private PanelObject[] openPanelObjects = null;
-	private HashSet<PanelObject> queuedPanelUpdates = null;
+	private HashSet<int> queuedPanelUpdates = null;
 
 	public static PanelManager GetInstance()
 	{
@@ -47,7 +45,7 @@ public class PanelManager : MonoBehaviour
 			openPanelObjects[i] = null;
 		}
 
-		queuedPanelUpdates = new HashSet<PanelObject>();
+		queuedPanelUpdates = new HashSet<int>();
 
 		instance = this;
 	}
@@ -74,9 +72,9 @@ public class PanelManager : MonoBehaviour
 			}
 		}
 
-		foreach(PanelObject panelObject in queuedPanelUpdates)
+		foreach(int panelId in queuedPanelUpdates)
 		{
-			panelObject.UpdateAllPanels();
+			openPanelObjects[panelId].UpdatePanel(openPanels[panelId]);
 		}
 		queuedPanelUpdates.Clear();
 	}
@@ -122,8 +120,6 @@ public class PanelManager : MonoBehaviour
 		{
 			if(openPanels[i] == panel)
 			{
-				openPanelObjects[i].ClosePanel(panel);
-
 				openPanels[i] = null;
 				openPanelObjects[i] = null;
 				break;
@@ -133,9 +129,35 @@ public class PanelManager : MonoBehaviour
 		GameObject.Destroy(panel.gameObject);
 	}
 
+	public void ClosePanel(PanelObject panelObject)
+	{
+		RectTransform panel = null;
+		for(int i = 0; i < openPanelObjects.Length; ++i)
+		{
+			if(openPanelObjects[i] == panelObject)
+			{
+				panel = openPanels[i];
+				openPanels[i] = null;
+				openPanelObjects[i] = null;
+				break;
+			}
+		}
+
+		if(panel != null)
+		{
+			GameObject.Destroy(panel.gameObject);
+		}
+	}
+
 	public void QueuePanelUpdate(PanelObject panelObject)
 	{
-		queuedPanelUpdates.Add(panelObject);
+		for(int i = 0; i < openPanelObjects.Length; ++i)
+		{
+			if(openPanelObjects[i] == panelObject)
+			{
+				queuedPanelUpdates.Add(i);
+			}
+		}
 	}
 
 	public void QueueAllPanelUpdate()
@@ -144,7 +166,7 @@ public class PanelManager : MonoBehaviour
 		{
 			if(openPanels[i] != null && openPanelObjects[i] != null)
 			{
-				queuedPanelUpdates.Add(openPanelObjects[i]);
+				queuedPanelUpdates.Add(i);
 			}
 		}
 	}
