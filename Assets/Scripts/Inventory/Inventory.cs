@@ -89,23 +89,20 @@ public class Inventory : PanelObject, IListener
 
 	public void Notify()
 	{
-		float goodDecayEpsilon = 0.00001f;
-
 		// Daily Decay of Goods
 		Good[] inventoryKeys = sortedInventoryKeys.ToArray();
 		foreach(Good good in inventoryKeys)
 		{
-			if(good.goodData.decayPerDay >= goodDecayEpsilon)
+			if(good.goodData.decayPerDay >= Mathf.Epsilon)
 			{
 				DecayGood(good, good.goodData.decayPerDay);
+				panelManager.QueuePanelUpdate(this);
 			}
-
-			panelManager.QueuePanelUpdate(this);
 		}
 
 		// Over Capacity Penalty
 		// Extra Loop, because the Good List did change on Decay
-		if(bulk > bulkCapacity && overCapacityDecayPerDay >= goodDecayEpsilon)
+		if(bulk > bulkCapacity && overCapacityDecayPerDay >= Mathf.Epsilon)
 		{
 			float currentOvercapacityDecay = GetOvercapacityDecay();
 			inventoryKeys = sortedInventoryKeys.ToArray();
@@ -650,7 +647,6 @@ public class Inventory : PanelObject, IListener
 			{
 				if(lastMarket != null && reservedInventoryItems.ContainsKey(good) && reservedInventoryItems[good] > 0)
 				{
-					// Withdraw barely enough Goods from Market to satisfy Decay Amount
 					lastMarket.CancelSale(good, reservedInventoryItems[good]);
 				}
 

@@ -136,6 +136,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panelObjectType: 1
+  needEntryPrefab: {fileID: 8669118058672947937, guid: fb0452639e450a842be6bf1573b754ea, type: 3}
+  badColor: {r: 0.627451, g: 0, b: 0, a: 1}
+  mehColor: {r: 0.8235294, g: 0.8, b: 0.6313726, a: 1}
+  goodColor: {r: 0, g: 0.5647059, b: 0.8784314, a: 1}
+  disabledColor: {r: 0.3764706, g: 0.3764706, b: 0.3764706, a: 1}
 --- !u!114 &4811585615747019209
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -167,9 +172,9 @@ MonoBehaviour:
   buildingDegradationFactor: 1
   buildingEntryPrefab: {fileID: 7022509754344602647, guid: bca807b1d20dd964293cda2afe2cec4c, type: 3}
   constructionSiteEntryPrefab: {fileID: 7022509754344602647, guid: a572f0d92b4451a4eaac20dda31dea92, type: 3}
-  jobEntryPrefab: {fileID: 7022509754344602647, guid: 4013d66f17363954bbcb656934704ceb, type: 3}
   warehouseInventoryPrefab: {fileID: 4307853699895608301, guid: edff4445a7aa4834393f1f053ee31859, type: 3}
   selectionColor: {r: 0.8235294, g: 0.8, b: 0.6313726, a: 1}
+  wageGroupCount: 5
 --- !u!114 &5202568110408387995
 MonoBehaviour:
   m_ObjectHideFlags: 0

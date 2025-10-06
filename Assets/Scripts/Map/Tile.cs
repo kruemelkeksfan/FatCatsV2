@@ -203,7 +203,6 @@ public class Tile : PanelObject, IListener
 		{
 			if(resource.localMaxAmount <= 0)
 			{
-
 				continue;
 			}
 

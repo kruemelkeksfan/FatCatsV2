@@ -21,10 +21,42 @@ public class TimeController : MonoBehaviour
 		}
 	}
 
+	// OLD COMMENT:
 	// Order:
 	// Tile: Regenerate Resources
 	// Inventory: Item Decay, AutoTrade Offers
 	// Town: Produce Items, Consume Items, Manage Workers
+
+	// CURRENT ORDER:
+	// TC: Regenerate Tile Resources
+	// IC: Good Decay
+	// IC: Combined Auto Trade Update
+	// BC: Fire unwanted Workers
+	// BC: Subtract Worker Wage for past Day/fire unpaid Workers
+	// BC: Consume Resources for past Day
+	// BC: Produce
+	// BC: Building Degradation
+	// BC: Construction Site Progress
+	// BC: Hire/Fire based on Job Market
+	// PC: Pay Workers
+	// PC: Population Consumption and Update
+
+	// PROPOSED ORDER:
+	// TC: Regenerate Tile Resources
+	// IC: Good Decay
+	// BC: Consume Resources for past Day
+	// BC: Produce | Requirements: Tile Resources regenerated, Resources consumed
+	// BC: Building Degradation | Requirements: Produce (Buildings should not degrade below their initial Quality before producing at least one Batch at max Quality)
+	// BC: Construction Site Progress | Requirements: Building Degradation (Construction Site should not be deterioating before it just after potentially gaining Quality)
+	// IC: Auto Trade Sell | Requirements: Produce (Products should not get stored 24h before being offered)
+	// IC: Auto Trade Buy | Requirements: Auto Trade Sell (all possible Offers must be available at Marketplace)
+	// BC: Fire unwanted Workers
+	// ??: Check Liquidity/exclude open Positions if insufficient Funds | Requirements: Auto Trade Sell
+	// BC: Hire/Fire based on Job Market | Requirements: Produce (you should not be able to hire productive Workers without paying them and onboarding them up to 24h), Fire unwanted Workers, Check Liquidity/exclude open Positions if insufficient Funds
+	// BC: Subtract Worker Wage for next Day/fire unpaid Workers | Requirements: Auto Trade Sell, Hire/Fire based on Job Market
+	// PC: Pay Workers for next Day | Requirements: Subtract Worker Wage for next Day from Player
+	// PC: Population Consumption and Update | Requirements: Auto Trade Sell (produced Consumer Goods must be available), Pay Workers for next Day (Workers should receive Wage immediately upon Hire)
+
 	public enum Order { Tile = 0, Inventory = 1, Town = 2};
 
 	private static TimeController instance = null;

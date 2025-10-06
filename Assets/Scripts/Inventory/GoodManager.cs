@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum NeedCategory { None, BuildingMaterial, Food, Clothing, Medicine, Weapon, Tool, Fuel };
+public enum NeedCategory { None, Building, Food, Clothing, Medicine, Weapon, Tool, Fuel };
 public enum EquipmentCategory { None, Head, Torso, Legs, Feet, Vest, Jacket, Backpack, Melee, Bow, Gun, Axe, Pickaxe, FishingRod };
 
 [Serializable]
