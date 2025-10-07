@@ -975,6 +975,12 @@ public class BuildingController : PanelObject
 
 		StartConstructionSite(building, new ConstructionSite(building, ConstructionSite.Action.Construction), false, false);
 
+		if(!jobsByWage.ContainsKey(building.wage))
+		{
+			jobsByWage.Add(building.wage, new List<Building>());
+		}
+		jobsByWage[building.wage].Add(building);
+
 		panelManager.OpenPanel(this);
 	}
 
