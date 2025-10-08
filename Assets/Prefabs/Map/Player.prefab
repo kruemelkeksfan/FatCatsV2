@@ -412,8 +412,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   playerName: PlayerNameHereOneDay
-  startingMoney: 100
-  localPlayer: 1
+  startingMoney: 0
 --- !u!114 &6953914445450368206
 MonoBehaviour:
   m_ObjectHideFlags: 0

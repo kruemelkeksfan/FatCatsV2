@@ -230,7 +230,7 @@ MonoBehaviour:
     essential: 0
   startingPopulation: 10
   maxPopulationGainFactor: 0.2
-  startingMoney: 10
+  startingMoney: 100
 --- !u!65 &8301208982883198931
 BoxCollider:
   m_ObjectHideFlags: 0
