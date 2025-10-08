@@ -153,9 +153,10 @@ public class Market : PanelObject
 				}
 			});
 
+			Button buyButton = marketEntry.GetChild(6).GetComponent<Button>();
+			Button marketAllButton = marketEntry.GetChild(11).GetComponent<Button>();
 			if(offers.ContainsKey(good) && offers[good].count > 0)
 			{
-				Button buyButton = marketEntry.GetChild(6).GetComponent<Button>();
 				buyButton.onClick.RemoveAllListeners();
 				buyButton.onClick.AddListener(delegate
 				{
@@ -169,16 +170,29 @@ public class Market : PanelObject
 						CancelSale(localGood, Mathf.Clamp(amount, 0, offers[localGood].count));
 					}
 				});
+
+				marketAllButton.onClick.RemoveAllListeners();
+				marketAllButton.onClick.AddListener(delegate
+				{
+					if(offers.ContainsKey(good))
+					{
+						amountField.text = offers[localGood].count.ToString();
+					}
+				});
+
 				buyButton.gameObject.SetActive(true);
+				marketAllButton.gameObject.SetActive(true);
 			}
 			else
 			{
-				marketEntry.GetChild(6).gameObject.SetActive(false);
+				buyButton.gameObject.SetActive(false);
+				marketAllButton.gameObject.SetActive(false);
 			}
 
+			Button sellButton = marketEntry.GetChild(8).GetComponent<Button>();
+			Button playerAllButton = marketEntry.GetChild(10).GetComponent<Button>();
 			if(playerInventory.GetInventoryAmount(good) > 0)
 			{
-				Button sellButton = marketEntry.GetChild(8).GetComponent<Button>();
 				sellButton.onClick.RemoveAllListeners();
 				sellButton.onClick.AddListener(delegate
 				{
@@ -186,11 +200,20 @@ public class Market : PanelObject
 						amountField.text != string.Empty ? Mathf.Clamp(Int32.Parse(amountField.text), 0, playerInventory.GetInventoryAmount(localGood)) : 0,
 						priceField.text != string.Empty ? Mathf.Max(Int32.Parse(priceField.text), 0) : 0);
 				});
+
+				playerAllButton.onClick.RemoveAllListeners();
+				playerAllButton.onClick.AddListener(delegate
+				{
+					amountField.text = playerInventory.GetInventoryAmount(localGood).ToString();
+				});
+
 				sellButton.gameObject.SetActive(true);
+				playerAllButton.gameObject.SetActive(true);
 			}
 			else
 			{
-				marketEntry.GetChild(8).gameObject.SetActive(false);
+				sellButton.gameObject.SetActive(false);
+				playerAllButton.gameObject.SetActive(false);
 			}
 
 			marketEntry.GetChild(9).GetComponent<TMP_Text>().text = (offers.ContainsKey(good) ? offers[good].count : 0).ToString();
