@@ -38,7 +38,6 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 705507994}
-  m_IndirectSpecularColor: {r: 0.44657898, g: 0.4964133, b: 0.5748178, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -2168,7 +2167,7 @@ MonoBehaviour:
     products:
     - Wood
     - Twigs
-    productOutputs: 0400000014000000
+    productOutputs: 0400000028000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
@@ -2179,7 +2178,7 @@ MonoBehaviour:
     description: Produces Stone
     products:
     - Stone
-    productOutputs: 02000000
+    productOutputs: 14000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
@@ -2192,7 +2191,7 @@ MonoBehaviour:
     - Fruits
     - Flax
     - Herbs
-    productOutputs: 0a0000000a00000005000000
+    productOutputs: 140000001400000014000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
