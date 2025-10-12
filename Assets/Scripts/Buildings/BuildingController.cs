@@ -100,6 +100,291 @@ public class BuildingController : PanelObject
 		goodManager = GoodManager.GetInstance();
 		townName = gameObject.GetComponent<Town>().GetTownName();
 		infoController = InfoController.GetInstance();
+
+		TimeController timeController = TimeController.GetInstance();
+		timeController.AddDailyUpdateListener(UpdateBuildings, TimeController.PriorityCategory.Buildings);
+		timeController.AddDailyUpdateListener(UpdateWorkers, TimeController.PriorityCategory.Workers);
+	}
+
+	public void UpdateBuildings(double time)
+	{
+		// TODO: Implement Seasons for Yield Differences (Growth Modifier is determined and retrieved from Time Controller)
+
+		List<Building> buildingsToDestroy = new List<Building>();
+		for(int i = 0; i < buildings.Count; ++i)
+		{
+			// TODO: Connect Town Buildings to Town Warehouse
+			if(buildings[i].connectedInventory == null)
+			{
+				continue;
+			}
+
+			// Check wanted Workers instead of real Workers, because it is faster than checking playerWorkers.Count
+			if(!buildings[i].underConstruction && buildings[i].wantedWorkers > 0)
+			{
+				// Resource Checking
+				int minProducedItems = buildings[i].CalculateOutput();
+				foreach(Tuple<string, int> resourceInput in buildings[i].currentResourceInputs)
+				{
+					int producedItems = (buildings[i].connectedInventory.GetInventoryAmount(resourceInput.Item1) / resourceInput.Item2) * minProducedItems;
+					if(producedItems < minProducedItems)
+					{
+						minProducedItems = producedItems;
+						infoController.AddMessage("Not enough " + resourceInput.Item1 + " in " + townName + "!", true, true);
+					}
+				}
+
+				// Resource Consumption and Resource Quality Calculation
+				float resourceQualitySum = 0.0f;
+				int totalResourceAmount = 0;
+				foreach(Tuple<string, int> resourceInput in buildings[i].currentResourceInputs)
+				{
+					List<Tuple<Good, int>> withdrawnGoods = buildings[i].connectedInventory.WithdrawGoodUnchecked(resourceInput.Item1, minProducedItems * resourceInput.Item2, true, false);
+					foreach(Tuple<Good, int> withdrawnGood in withdrawnGoods)
+					{
+						resourceQualitySum += withdrawnGood.Item1.quality * withdrawnGood.Item2;
+						totalResourceAmount += withdrawnGood.Item2;
+					}
+				}
+
+				// Product Quality Calculation
+				float productQuality = buildings[i].quality;
+				if(totalResourceAmount > 0)
+				{
+					productQuality = (buildings[i].quality + (resourceQualitySum / totalResourceAmount)) / 2.0f;
+				}
+				// Special Calculation for Resource Buildings, because those do not profit as much from e.g. Tools and many Resources can rot
+				else
+				{
+					productQuality = 0.5f + (buildings[i].quality * 0.5f);
+				}
+
+				// Production
+				if(buildings[i].buildingData.products.Length > 0)
+				{
+					buildings[i].connectedInventory.DepositGood(
+						new Good(goodManager.GetGoodData(buildings[i].buildingData.products[buildings[i].currentProductId]), productQuality, productQuality, buildings[i].connectedInventory),
+						minProducedItems);
+				}
+			}
+
+			// Building Degradation
+			// Do not destroy fresh Construction Sites
+			if(!(buildings[i].underConstruction && constructionSites[buildings[i]].action == ConstructionSite.Action.Construction && buildings[i].quality <= 0.0f))
+			{
+				// Quality Loss: y = (1 / (10 * x)) with y: Quality Loss, x: current Quality in %
+				if(buildings[i].quality > Mathf.Epsilon)
+				{
+					buildings[i].quality -= ((1.0f / (buildings[i].quality * 100.0f * 10.0f)) / 100.0f) * buildingDegradationFactor;
+				}
+				if(buildings[i].quality <= Mathf.Epsilon)
+				{
+					buildingsToDestroy.Add(buildings[i]);
+					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " withered away!", true, true);
+				}
+				else if(buildings[i].quality <= 0.01f && !buildings[i].decayWarningIssued)
+				{
+					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " is in bad Condition!", true, false);
+					buildings[i].decayWarningIssued = true;
+				}
+			}
+		}
+		foreach(Building building in buildingsToDestroy)
+		{
+			DestroyBuilding(building);
+		}
+
+		// Construction Sites
+		List<Building> buildingsUnderConstruction = new List<Building>(constructionSites.Keys);
+		foreach(Building building in buildingsUnderConstruction)
+		{
+			if(constructionSites[building].AdvanceConstruction())
+			{
+				// Construction
+				if(constructionSites[building].action == ConstructionSite.Action.Construction)
+				{
+					TerminateConstructionSite(building, true);
+					infoController.AddMessage("Construction of " + building.buildingData.buildingName + " complete", false, true);
+				}
+				// Repair
+				else if(constructionSites[building].action == ConstructionSite.Action.Repair)
+				{
+					building.quality += constructionSites[building].materialQuality;
+					building.decayWarningIssued = false;
+					TerminateConstructionSite(building, true);
+					infoController.AddMessage("Repair of " + building.buildingData.buildingName + " complete", false, false);
+				}
+				// Deconstruction
+				else if(constructionSites[building].action == ConstructionSite.Action.Deconstruction)
+				{
+					float materialQuality = building.quality * (1.0f / building.buildingStyle.baseQuality);
+					List<Tuple<string, int>> deconstructionMaterials = ConstructionSite.GetDeconstructionMaterials(currentBuilding, constructionSites[building].destructionCount);
+					for(int i = 0; i < building.buildingStyle.materials.Length; i++)
+					{
+						building.connectedInventory.DepositGood(new Good(
+							goodManager.GetGoodData(deconstructionMaterials[i].Item1),
+							materialQuality, materialQuality, building.connectedInventory),
+							deconstructionMaterials[i].Item2);
+					}
+
+					building.size -= constructionSites[building].destructionCount;
+					if(building.size <= 0)
+					{
+						DestroyBuilding(building);
+					}
+
+					infoController.AddMessage("Deconstruction of " + building.buildingData.buildingName + " complete", false, false);
+				}
+			}
+		}
+		buildings.Sort(CompareBuildings);
+	}
+
+	public void UpdateWorkers(double time)
+	{
+		Dictionary<Player, int> playerBudgetsLeft = new Dictionary<Player, int>();
+		bool fired = false;
+		LinkedList<Tuple<Building, int>> openPositions = new LinkedList<Tuple<Building, int>>(); // Building, Number of open Positions
+		int totalOpenPositions = 0;
+		for(int i = 0; i < buildings.Count; ++i)
+		{
+			// Fire unwanted Workers
+			while(buildings[i].playerWorkers.Count > 0 && buildings[i].playerWorkers.Count > buildings[i].wantedWorkers)
+			{
+				buildings[i].playerWorkers[buildings[i].playerWorkers.Count - 1].ResetAction(false, false, true);
+			}
+			int wantedTownWorkerCount = buildings[i].wantedWorkers - buildings[i].playerWorkers.Count;
+			if(buildings[i].townWorkers > wantedTownWorkerCount)
+			{
+				populationController.ChangeIncome(buildings[i].wage, 0, buildings[i].townWorkers - wantedTownWorkerCount);
+				buildings[i].townWorkers = wantedTownWorkerCount;
+			}
+
+			// Check Player Liquidity and fire People if they can not be payed later on
+			if(buildings[i].wantedWorkers > 0)
+			{
+				if(!playerBudgetsLeft.ContainsKey(buildings[i].owner))
+				{
+					playerBudgetsLeft.Add(buildings[i].owner, buildings[i].connectedInventory.GetMoney());
+				}
+
+				if(playerBudgetsLeft[buildings[i].owner] < ((buildings[i].wantedWorkers - (buildings[i].playerWorkers.Contains(localPlayer) ? 1 : 0)) * buildings[i].wage))
+				{
+					fired = true;
+
+					foreach(Player player in buildings[i].playerWorkers)
+					{
+						if(player != localPlayer)
+						{
+							player.ResetAction(false, false, true);
+						}
+					}
+
+					populationController.ChangeIncome(buildings[i].wage, 0, buildings[i].townWorkers);
+					buildings[i].townWorkers = 0;
+					buildings[i].wantedWorkers = 0;
+				}
+				else
+				{
+					playerBudgetsLeft[buildings[i].owner] -= buildings[i].wantedWorkers * buildings[i].wage;
+				}
+			}
+
+			// Fill Hire List
+			int totalWorkerCount = buildings[i].townWorkers + buildings[i].playerWorkers.Count;
+			if(totalWorkerCount < buildings[i].wantedWorkers)
+			{
+				Tuple<Building, int> newOpenPosition = new Tuple<Building, int>(buildings[i], buildings[i].wantedWorkers - totalWorkerCount);
+				totalOpenPositions += newOpenPosition.Item2;
+				LinkedListNode<Tuple<Building, int>> currentPosition = openPositions.First;
+				// Sorted by Wage descending
+				while(currentPosition != null && (currentPosition.Value.Item1.wage >= newOpenPosition.Item1.wage))
+				{
+					currentPosition = currentPosition.Next;
+				}
+
+				if(currentPosition != null)
+				{
+					openPositions.AddBefore(currentPosition, newOpenPosition);
+				}
+				else
+				{
+					openPositions.AddFirst(newOpenPosition);
+				}
+			}
+		}
+		if(fired)
+		{
+			infoController.AddMessage("Unable to pay Workers in " + townName + "!", true, true);
+		}
+
+		// Update Job Market
+		Tuple<Dictionary<Building, int>, Dictionary<int, int>> hireFireLists = populationController.UpdateJobMarket(openPositions);
+
+		// Fire based on Job Market
+		foreach(KeyValuePair<int, int> firePosition in hireFireLists.Item2)
+		{
+			int peopleLeftToFire = firePosition.Value;
+			List<Building> fireBuildings = jobsByWage[firePosition.Key];
+			for(int i = fireBuildings.Count - 1; i >= 0; --i)   // Fire newest Employees first
+			{
+				if(fireBuildings[i].townWorkers <= 0)
+				{
+					jobsByWage[firePosition.Key].Remove(fireBuildings[i]);
+					continue;
+				}
+
+				int fireCount = Mathf.Min(fireBuildings[i].townWorkers, peopleLeftToFire);
+
+				fireBuildings[i].townWorkers -= fireCount;
+
+				peopleLeftToFire -= fireCount;
+
+				if(peopleLeftToFire <= 0)
+				{
+					break;
+				}
+			}
+			if(peopleLeftToFire > 0)
+			{
+				Debug.LogWarning("Unable to fire more People, there are not enough People working for " + firePosition.Key + "G to fire " + firePosition.Value + " of them!");
+			}
+		}
+
+		// Hire based on Job Market
+		foreach(KeyValuePair<Building, int> hirePosition in hireFireLists.Item1)
+		{
+			hirePosition.Key.townWorkers += hirePosition.Value;
+
+			int wage = hirePosition.Key.wage;
+			if(!jobsByWage.ContainsKey(wage))
+			{
+				jobsByWage.Add(wage, new List<Building>());
+			}
+			jobsByWage[wage].Add(hirePosition.Key);
+		}
+
+		// Pay Workers
+		for(int i = 0; i < buildings.Count; ++i)
+		{
+			if(buildings[i].wantedWorkers > 0)
+			{
+				// Pay
+				foreach(Player player in buildings[i].playerWorkers)
+				{
+					if(player != localPlayer && player.IsProductive() && !buildings[i].connectedInventory.TransferMoney(player.GetInventory(), buildings[i].wage))
+					{
+						Debug.LogWarning("Unable to pay " + player.GetPlayerName() + " from " + buildings[i].buildingData.buildingName + " of " + buildings[i].owner.GetPlayerName() + " in " + townName);
+					}
+				}
+				if(!buildings[i].connectedInventory.ChangeMoney(-buildings[i].townWorkers * buildings[i].wage))
+				{
+					Debug.LogWarning("Unable to pay " + buildings[i].townWorkers + " Town Workers of " + buildings[i].buildingData.buildingName + " of " + buildings[i].owner.GetPlayerName() + " in " + townName);
+				}
+			}
+		}
+
+		panelManager.QueuePanelUpdate(this);
 	}
 
 	public override void UpdatePanel(RectTransform panel)
@@ -692,250 +977,6 @@ public class BuildingController : PanelObject
 		}
 
 		listParent.sizeDelta = new Vector2(listParent.sizeDelta.x, totalHeight);
-	}
-
-	public void UpdateBuildings()
-	{
-		// TODO: Implement Seasons for Yield Differences (Growth Modifier is determined and retrieved from Time Controller)
-
-		bool fired = false;
-		List<Building> buildingsToDestroy = new List<Building>();
-		for(int i = 0; i < buildings.Count; ++i)
-		{
-			// TODO: Connect Town Buildings to Town Warehouse
-			if(buildings[i].connectedInventory == null)
-			{
-				continue;
-			}
-
-			// Fire or Pay Workers
-			// Fire
-			while(buildings[i].playerWorkers.Count > 0 && buildings[i].playerWorkers.Count > buildings[i].wantedWorkers)
-			{
-				buildings[i].playerWorkers[buildings[i].playerWorkers.Count - 1].ResetAction(false, false, true);
-			}
-			int wantedTownWorkerCount = buildings[i].wantedWorkers - buildings[i].playerWorkers.Count;
-			if(buildings[i].townWorkers > wantedTownWorkerCount)
-			{
-				populationController.ChangeIncome(buildings[i].wage, 0, buildings[i].townWorkers - wantedTownWorkerCount);
-				buildings[i].townWorkers = wantedTownWorkerCount;
-			}
-			if(buildings[i].wantedWorkers > 0)
-			{
-				// Pay
-				foreach(Player player in buildings[i].playerWorkers)
-				{
-					if(player != localPlayer && player.IsProductive() && !buildings[i].connectedInventory.TransferMoney(player.GetInventory(), buildings[i].wage))
-					{
-						player.ResetAction(false, false, true);
-						infoController.AddMessage("Fired " + player.GetPlayerName() + "!", true, true);
-
-						--buildings[i].wantedWorkers;
-					}
-				}
-				if(!buildings[i].connectedInventory.ChangeMoney(-buildings[i].townWorkers * buildings[i].wage))
-				{
-					fired = true;
-
-					populationController.ChangeIncome(buildings[i].wage, 0, buildings[i].townWorkers);
-					buildings[i].townWorkers = 0;
-					buildings[i].wantedWorkers = buildings[i].playerWorkers.Count;
-				}
-
-				if(!buildings[i].underConstruction)
-				{
-					// Resource Consumption
-					int minProducedItems = buildings[i].CalculateOutput();
-					foreach(Tuple<string, int> resourceInput in buildings[i].currentResourceInputs)
-					{
-						int producedItems = (buildings[i].connectedInventory.GetInventoryAmount(resourceInput.Item1) / resourceInput.Item2) * minProducedItems;
-						if(producedItems < minProducedItems)
-						{
-							minProducedItems = producedItems;
-							infoController.AddMessage("Not enough " + resourceInput.Item1 + " in " + townName + "!", true, true);
-						}
-					}
-
-					// Resource Quality Calculation
-					float resourceQualitySum = 0.0f;
-					int totalResourceAmount = 0;
-					foreach(Tuple<string, int> resourceInput in buildings[i].currentResourceInputs)
-					{
-						List<Tuple<Good, int>> withdrawnGoods = buildings[i].connectedInventory.WithdrawGoodUnchecked(resourceInput.Item1, minProducedItems * resourceInput.Item2, true, false);
-						foreach(Tuple<Good, int> withdrawnGood in withdrawnGoods)
-						{
-							resourceQualitySum += withdrawnGood.Item1.quality * withdrawnGood.Item2;
-							totalResourceAmount += withdrawnGood.Item2;
-						}
-					}
-
-					// Product Quality Calculation
-					float productQuality = buildings[i].quality;
-					if(totalResourceAmount > 0)
-					{
-						productQuality = (buildings[i].quality + (resourceQualitySum / totalResourceAmount)) / 2.0f;
-					}
-					// Special Calculation for Resource Buildings, because those do not profit as much from e.g. Tools and many Resources can rot
-					else
-					{
-						productQuality = 0.5f + (buildings[i].quality * 0.5f);
-					}
-
-					// Production
-					if(buildings[i].buildingData.products.Length > 0)
-					{
-						buildings[i].connectedInventory.DepositGood(
-							new Good(goodManager.GetGoodData(buildings[i].buildingData.products[buildings[i].currentProductId]), productQuality, productQuality, buildings[i].connectedInventory),
-							minProducedItems);
-					}
-				}
-			}
-
-			// Building Degradation
-			// Do not destroy fresh Construction Sites
-			if(!(buildings[i].underConstruction && constructionSites[buildings[i]].action == ConstructionSite.Action.Construction && buildings[i].quality <= 0.0f))
-			{
-				// Quality Loss: y = (1 / (10 * x)) with y: Quality Loss, x: current Quality in %
-				if(buildings[i].quality > Mathf.Epsilon)
-				{
-					buildings[i].quality -= ((1.0f / (buildings[i].quality * 100.0f * 10.0f)) / 100.0f) * buildingDegradationFactor;
-				}
-				if(buildings[i].quality <= Mathf.Epsilon)
-				{
-					buildingsToDestroy.Add(buildings[i]);
-					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " withered away!", true, true);
-				}
-				else if(buildings[i].quality <= 0.01f && !buildings[i].decayWarningIssued)
-				{
-					infoController.AddMessage(buildings[i].buildingData.buildingName + " in " + townName + " is in bad Condition!", true, false);
-					buildings[i].decayWarningIssued = true;
-				}
-			}
-		}
-		if(fired)
-		{
-			infoController.AddMessage("Unable to pay Workers in " + townName + "!", true, true);
-		}
-		foreach(Building building in buildingsToDestroy)
-		{
-			DestroyBuilding(building);
-		}
-
-		// Construction Sites
-		List<Building> buildingsUnderConstruction = new List<Building>(constructionSites.Keys);
-		foreach(Building building in buildingsUnderConstruction)
-		{
-			if(constructionSites[building].AdvanceConstruction())
-			{
-				// Construction
-				if(constructionSites[building].action == ConstructionSite.Action.Construction)
-				{
-					TerminateConstructionSite(building, true);
-					infoController.AddMessage("Construction of " + building.buildingData.buildingName + " complete", false, true);
-				}
-				// Repair
-				else if(constructionSites[building].action == ConstructionSite.Action.Repair)
-				{
-					building.quality += constructionSites[building].materialQuality;
-					building.decayWarningIssued = false;
-					TerminateConstructionSite(building, true);
-					infoController.AddMessage("Repair of " + building.buildingData.buildingName + " complete", false, false);
-				}
-				// Deconstruction
-				else if(constructionSites[building].action == ConstructionSite.Action.Deconstruction)
-				{
-					float materialQuality = building.quality * (1.0f / building.buildingStyle.baseQuality);
-					List<Tuple<string, int>> deconstructionMaterials = ConstructionSite.GetDeconstructionMaterials(currentBuilding, constructionSites[building].destructionCount);
-					for(int i = 0; i < building.buildingStyle.materials.Length; i++)
-					{
-						building.connectedInventory.DepositGood(new Good(
-							goodManager.GetGoodData(deconstructionMaterials[i].Item1),
-							materialQuality, materialQuality, building.connectedInventory),
-							deconstructionMaterials[i].Item2);
-					}
-
-					building.size -= constructionSites[building].destructionCount;
-					if(building.size <= 0)
-					{
-						DestroyBuilding(building);
-					}
-
-					infoController.AddMessage("Deconstruction of " + building.buildingData.buildingName + " complete", false, false);
-				}
-			}
-		}
-		buildings.Sort(CompareBuildings);
-
-		// Hire Workers
-		// Hire after Production/Construction Phase to ensure that Workers who got hired during the Day (e.g. at 23:59) don't contribute to Production/Construction
-		LinkedList<Tuple<Building, int>> openPositions = new LinkedList<Tuple<Building, int>>(); // Building, Number of open Positions
-		int totalOpenPositions = 0;
-		for(int i = 0; i < buildings.Count; ++i)
-		{
-			int totalWorkerCount = buildings[i].townWorkers + buildings[i].playerWorkers.Count;
-			if(totalWorkerCount < buildings[i].wantedWorkers)
-			{
-				Tuple<Building, int> newOpenPosition = new Tuple<Building, int>(buildings[i], buildings[i].wantedWorkers - totalWorkerCount);
-				totalOpenPositions += newOpenPosition.Item2;
-				LinkedListNode<Tuple<Building, int>> currentPosition = openPositions.First;
-				// Sorted by Wage descending
-				while(currentPosition != null && (currentPosition.Value.Item1.wage >= newOpenPosition.Item1.wage))
-				{
-					currentPosition = currentPosition.Next;
-				}
-
-				if(currentPosition != null)
-				{
-					openPositions.AddBefore(currentPosition, newOpenPosition);
-				}
-				else
-				{
-					openPositions.AddFirst(newOpenPosition);
-				}
-			}
-		}
-		Tuple<Dictionary<Building, int>, Dictionary<int, int>> hireFireLists = populationController.UpdateJobMarket(openPositions);
-		foreach(KeyValuePair<int, int> firePosition in hireFireLists.Item2)
-		{
-			int peopleLeftToFire = firePosition.Value;
-			List<Building> fireBuildings = jobsByWage[firePosition.Key];
-			for(int i = fireBuildings.Count - 1; i >= 0; --i)   // Fire newest Employees first
-			{
-				if(fireBuildings[i].townWorkers <= 0)
-				{
-					jobsByWage[firePosition.Key].Remove(fireBuildings[i]);
-					continue;
-				}
-
-				int fireCount = Mathf.Min(fireBuildings[i].townWorkers, peopleLeftToFire);
-
-				fireBuildings[i].townWorkers -= fireCount;
-
-				peopleLeftToFire -= fireCount;
-
-				if(peopleLeftToFire <= 0)
-				{
-					break;
-				}
-			}
-			if(peopleLeftToFire > 0)
-			{
-				Debug.LogWarning("Unable to fire more People, there are not enough People working for " + firePosition.Key + "G to fire " + firePosition.Value + " of them!");
-			}
-		}
-		foreach(KeyValuePair<Building, int> hirePosition in hireFireLists.Item1)
-		{
-			hirePosition.Key.townWorkers += hirePosition.Value;
-
-			int wage = hirePosition.Key.wage;
-			if(!jobsByWage.ContainsKey(wage))
-			{
-				jobsByWage.Add(wage, new List<Building>());
-			}
-			jobsByWage[wage].Add(hirePosition.Key);
-		}
-
-		panelManager.QueuePanelUpdate(this);
 	}
 
 	public bool KillTownWorkers(int income, int count)

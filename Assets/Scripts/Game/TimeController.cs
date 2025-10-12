@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -21,27 +20,7 @@ public class TimeController : MonoBehaviour
 		}
 	}
 
-	// OLD COMMENT:
-	// Order:
-	// Tile: Regenerate Resources
-	// Inventory: Item Decay, AutoTrade Offers
-	// Town: Produce Items, Consume Items, Manage Workers
-
-	// CURRENT ORDER:
-	// TC: Regenerate Tile Resources
-	// IC: Good Decay
-	// IC: Combined Auto Trade Update
-	// BC: Fire unwanted Workers
-	// BC: Subtract Worker Wage for past Day/fire unpaid Workers
-	// BC: Consume Resources for past Day
-	// BC: Produce
-	// BC: Building Degradation
-	// BC: Construction Site Progress
-	// BC: Hire/Fire based on Job Market
-	// PC: Pay Workers
-	// PC: Population Consumption and Update
-
-	// PROPOSED ORDER:
+	// EXECUTION ORDER:
 	// TC: Regenerate Tile Resources
 	// IC: Good Decay
 	// BC: Consume Resources for past Day
@@ -51,13 +30,13 @@ public class TimeController : MonoBehaviour
 	// IC: Auto Trade Sell | Requirements: Produce (Products should not get stored 24h before being offered)
 	// IC: Auto Trade Buy | Requirements: Auto Trade Sell (all possible Offers must be available at Marketplace)
 	// BC: Fire unwanted Workers
-	// ??: Check Liquidity/exclude open Positions if insufficient Funds | Requirements: Auto Trade Sell
+	// BC: Check Liquidity/exclude open Positions if insufficient Funds | Requirements: Auto Trade Sell
 	// BC: Hire/Fire based on Job Market | Requirements: Produce (you should not be able to hire productive Workers without paying them and onboarding them up to 24h), Fire unwanted Workers, Check Liquidity/exclude open Positions if insufficient Funds
 	// BC: Subtract Worker Wage for next Day/fire unpaid Workers | Requirements: Auto Trade Sell, Hire/Fire based on Job Market
 	// PC: Pay Workers for next Day | Requirements: Subtract Worker Wage for next Day from Player
 	// PC: Population Consumption and Update | Requirements: Auto Trade Sell (produced Consumer Goods must be available), Pay Workers for next Day (Workers should receive Wage immediately upon Hire)
 
-	public enum Order { Tile = 0, Inventory = 1, Town = 2};
+	public enum PriorityCategory { Tile = 0, GoodDecay = 1, Buildings = 2, AutoTradeSell = 3, AutoTradeBuy = 4, Workers = 5, Town = 6 };
 
 	private static TimeController instance = null;
 
@@ -75,7 +54,7 @@ public class TimeController : MonoBehaviour
 	private double nextGameTimestamp = double.MaxValue;
 	private double nextRealTimestamp = double.MaxValue;
 	private List<Coroutine> iteratableCoroutines = null;
-	private List<IListener>[] dailyUpdateListeners = null;
+	private Queue<Action<double>>[] dailyUpdateListeners = null;
 	private int lastDailyUpdate = 1;
 	private Color? inactiveTimeButtonColor = null;
 
@@ -89,7 +68,12 @@ public class TimeController : MonoBehaviour
 		gameTimeCoroutines = new HashSet<Coroutine>();
 		realTimeCoroutines = new HashSet<Coroutine>();
 		iteratableCoroutines = new List<Coroutine>();
-		dailyUpdateListeners = new List<IListener>[] {new List<IListener>(), new List<IListener>(), new List<IListener>()};
+		int priorityCategoryCount = Enum.GetNames(typeof(PriorityCategory)).Length;
+		dailyUpdateListeners = new Queue<Action<double>>[priorityCategoryCount];
+		for(int i = 0; i < priorityCategoryCount; ++i)
+		{
+			dailyUpdateListeners[i] = new Queue<Action<double>>();
+		}
 
 		instance = this;
 	}
@@ -117,13 +101,17 @@ public class TimeController : MonoBehaviour
 
 		if(gameTime >= lastDailyUpdate + 1)
 		{
-			foreach(List<IListener> dailyUpdateListenerList in dailyUpdateListeners)
+			foreach(Queue<Action<double>> dailyUpdateListenerList in dailyUpdateListeners)
 			{
-				foreach(IListener dailyUpdateListener in dailyUpdateListenerList)
+				foreach(Action<double> dailyUpdateListener in dailyUpdateListenerList)
 				{
-					dailyUpdateListener.Notify();
+					dailyUpdateListener(gameTime);
 				}
 			}
+
+			// Change Auto Trade buy Order, because not the same Person should be the first to pick Offers each Day
+			// TODO: Test when AI exists
+			dailyUpdateListeners[(int)PriorityCategory.AutoTradeBuy].Enqueue(dailyUpdateListeners[(int)PriorityCategory.AutoTradeBuy].Dequeue());
 
 			++lastDailyUpdate;
 		}
@@ -214,16 +202,16 @@ public class TimeController : MonoBehaviour
 	public string BuildTimeString()
 	{
 		double clockTime = (gameTime % 1.0) * 24.0;
-		int hour = (int) clockTime;
-		int minute = (int) ((clockTime % 1) * 60.0);
+		int hour = (int)clockTime;
+		int minute = (int)((clockTime % 1) * 60.0);
 		return "Year " + GetCurrentYear() + ",  "
-			+ "Day " + (((int) gameTime) % daysPerYear) + ",  "
+			+ "Day " + (((int)gameTime) % daysPerYear) + ",  "
 			+ hour.ToString("00") + ":" + minute.ToString("00");
 	}
 
-	public void AddDailyUpdateListener(IListener listener, Order prio)
+	public void AddDailyUpdateListener(Action<double> listener, PriorityCategory prio)
 	{
-		dailyUpdateListeners[(int) prio].Add(listener);
+		dailyUpdateListeners[(int)prio].Enqueue(listener);
 	}
 
 	public bool IsScaled()
@@ -248,7 +236,7 @@ public class TimeController : MonoBehaviour
 
 	public int GetCurrentYear()
 	{
-		return ((int) gameTime) / daysPerYear;
+		return ((int)gameTime) / daysPerYear;
 	}
 
 	public void SetTimeScale(int timeScaleIndex)

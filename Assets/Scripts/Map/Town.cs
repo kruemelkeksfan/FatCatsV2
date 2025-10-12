@@ -3,7 +3,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Town : PanelObject, IListener
+public class Town : PanelObject
 {
 	[SerializeField] RectTransform needEntryPrefab = null;
 	[SerializeField] Color badColor = new Color();
@@ -38,8 +38,16 @@ public class Town : PanelObject, IListener
 
 		position = gameObject.GetComponentInParent<Tile>().GetPosition();
 
-		TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Town);
+		TimeController.GetInstance().AddDailyUpdateListener(TownUpdate, TimeController.PriorityCategory.Town);
 		needData = populationController.GetNeedData();
+	}
+
+	public void TownUpdate(double time)
+	{
+		populationController.UpdatePopulation();
+
+		panelManager.QueuePanelUpdate(this);
+		panelManager.QueuePanelUpdate(market); // Update Town Stats in Market Panel even if no Trades occur
 	}
 
 	public override void UpdatePanel(RectTransform panel)
@@ -257,15 +265,6 @@ public class Town : PanelObject, IListener
 
 			detailPanel.GetChild(0).gameObject.SetActive(true);
 		}
-	}
-
-	public void Notify()
-	{
-		buildingController.UpdateBuildings();
-		populationController.UpdatePopulation();
-
-		panelManager.QueuePanelUpdate(this);
-		panelManager.QueuePanelUpdate(market); // Update Town Stats in Market Panel even if no Trades occur
 	}
 
 	private string GenerateTownName()

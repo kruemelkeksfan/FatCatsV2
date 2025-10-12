@@ -4,7 +4,7 @@ using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class Inventory : PanelObject, IListener
+public class Inventory : PanelObject
 {
 	public enum SortType { PerceivedQualityAscending, PerceivedQualityDescending };
 
@@ -42,6 +42,7 @@ public class Inventory : PanelObject, IListener
 	private Dictionary<Good, int> inventoryItems = null;
 	private List<Good> sortedInventoryKeys = null;
 	private Dictionary<Good, int> reservedInventoryItems = null;
+	private Dictionary<string, int> storedAmounts = null;
 	private int bulk = 0;
 	private int bulkCapacity = 0;
 	private Player player = null;
@@ -74,6 +75,7 @@ public class Inventory : PanelObject, IListener
 		inventoryItems = new Dictionary<Good, int>();
 		sortedInventoryKeys = new List<Good>();
 		reservedInventoryItems = new Dictionary<Good, int>();
+		storedAmounts = new Dictionary<string, int>();
 		bulkCapacity = baseBulkCapacity;
 	}
 
@@ -81,13 +83,17 @@ public class Inventory : PanelObject, IListener
 	{
 		base.Start();
 
-		TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Inventory);
+		TimeController timeController = TimeController.GetInstance();
+		timeController.AddDailyUpdateListener(GoodDecay, TimeController.PriorityCategory.GoodDecay);
+		timeController.AddDailyUpdateListener(AutoTradeSell, TimeController.PriorityCategory.AutoTradeSell);
+		timeController.AddDailyUpdateListener(AutoTradeBuy, TimeController.PriorityCategory.AutoTradeBuy);
+
 		infoController = InfoController.GetInstance();
 		buildingController = GetComponentInParent<BuildingController>();
 		lastMarket = GetComponentInParent<Market>();
 	}
 
-	public void Notify()
+	public void GoodDecay(double time)
 	{
 		// Daily Decay of Goods
 		Good[] inventoryKeys = sortedInventoryKeys.ToArray();
@@ -128,9 +134,75 @@ public class Inventory : PanelObject, IListener
 		{
 			overCapacityYesterday = false;
 		}
+	}
 
-		// Update Auto Trades
-		UpdateAutoTrades();
+	public void AutoTradeSell(double time)
+	{
+		if(autoTrades != null && buildingController.IsWarehouseAdministered(player))
+		{
+			// Cancel all Sales
+			List<Good> reservedInventoryItemKeys = new List<Good>(reservedInventoryItems.Keys);
+			foreach(Good reservedInventoryItemKey in reservedInventoryItemKeys)
+			{
+				lastMarket.CancelSale(reservedInventoryItemKey, reservedInventoryItems[reservedInventoryItemKey]);
+			}
+
+			storedAmounts.Clear();
+			foreach(AutoTrade autoTrade in autoTrades.Values)
+			{
+				List<Tuple<Good, int>> inventoryGoods = GetStoredGoods(autoTrade.goodName, SortType.PerceivedQualityDescending);
+				int storeAmount = 0;
+				foreach(Tuple<Good, int> inventoryGoodEntry in inventoryGoods)
+				{
+					// Count Items
+					storeAmount += inventoryGoodEntry.Item2;
+
+					// Sell Stuff
+					if(autoTrade.sell && storeAmount > autoTrade.minAmount)
+					{
+						int sellAmount = storeAmount - autoTrade.minAmount;
+						storeAmount = autoTrade.minAmount;
+
+						lastMarket.PutUpForSale(inventoryGoodEntry.Item1, sellAmount, autoTrade.sellPrice);
+					}
+				}
+
+				storedAmounts[autoTrade.goodName] = storeAmount;
+			}
+		}
+	}
+
+	public void AutoTradeBuy(double time)
+	{
+		if(autoTrades != null && buildingController.IsWarehouseAdministered(player))
+		{
+			foreach(AutoTrade autoTrade in autoTrades.Values)
+			{
+				// Buy Stuff
+				int storeAmount = storedAmounts[autoTrade.goodName];
+				if(autoTrade.buy && storeAmount < autoTrade.maxAmount)
+				{
+					List<Tuple<Good, MarketOffer>> offers = lastMarket.GetSortedOffers(autoTrade.goodName, Market.CompareOfferPrice);
+					foreach(Tuple<Good, MarketOffer> offer in offers)
+					{
+						int buyAmount = Mathf.Min(autoTrade.maxAmount - storeAmount, offer.Item2.count);
+						if(lastMarket.Buy(offer.Item1, buyAmount, this))
+						{
+							storeAmount += buyAmount;
+							if(storeAmount >= autoTrade.maxAmount)
+							{
+								break;
+							}
+						}
+						else if(localPlayerOwned)
+						{
+							string location = gameObject.GetComponentInParent<Town>()?.GetTownName();
+							infoController.AddMessage("Unable to buy " + autoTrade.goodName + ((location != null) ? (" in " + location) : ""), true, false);
+						}
+					}
+				}
+			}
+		}
 	}
 
 	public override void UpdatePanel(RectTransform panel)
@@ -564,63 +636,6 @@ public class Inventory : PanelObject, IListener
 
 		Debug.LogWarning("Unreserving " + amount + " " + good.goodData.goodName + " in " + this + " failed!");
 		return false;
-	}
-
-	public void UpdateAutoTrades()
-	{
-		if(autoTrades != null && buildingController.IsWarehouseAdministered(player))
-		{
-			// Cancel all Sales
-			List<Good> reservedInventoryItemKeys = new List<Good>(reservedInventoryItems.Keys);
-			foreach(Good reservedInventoryItemKey in reservedInventoryItemKeys)
-			{
-				lastMarket.CancelSale(reservedInventoryItemKey, reservedInventoryItems[reservedInventoryItemKey]);
-			}
-
-			foreach(AutoTrade autoTrade in autoTrades.Values)
-			{
-
-				List<Tuple<Good, int>> inventoryGoods = GetStoredGoods(autoTrade.goodName, SortType.PerceivedQualityDescending);
-				int storeAmount = 0;
-				foreach(Tuple<Good, int> inventoryGoodEntry in inventoryGoods)
-				{
-					// Count Items
-					storeAmount += inventoryGoodEntry.Item2;
-
-					// Sell Stuff
-					if(autoTrade.sell && storeAmount > autoTrade.minAmount)
-					{
-						int sellAmount = storeAmount - autoTrade.minAmount;
-						storeAmount = autoTrade.minAmount;
-
-						lastMarket.PutUpForSale(inventoryGoodEntry.Item1, sellAmount, autoTrade.sellPrice);
-					}
-				}
-
-				// Buy Stuff
-				if(autoTrade.buy && storeAmount < autoTrade.maxAmount)
-				{
-					List<Tuple<Good, MarketOffer>> offers = lastMarket.GetSortedOffers(autoTrade.goodName, Market.CompareOfferPrice);
-					foreach(Tuple<Good, MarketOffer> offer in offers)
-					{
-						int buyAmount = Mathf.Min(autoTrade.maxAmount - storeAmount, offer.Item2.count);
-						if(lastMarket.Buy(offer.Item1, buyAmount, this))
-						{
-							storeAmount += buyAmount;
-							if(storeAmount >= autoTrade.maxAmount)
-							{
-								break;
-							}
-						}
-						else if(localPlayerOwned)
-						{
-							string location = gameObject.GetComponentInParent<Town>()?.GetTownName();
-							infoController.AddMessage("Unable to buy " + autoTrade.goodName + ((location != null) ? (" in " + location) : ""), true, false);
-						}
-					}
-				}
-			}
-		}
 	}
 
 	private float GetOvercapacityDecay()

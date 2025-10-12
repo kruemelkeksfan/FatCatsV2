@@ -24,7 +24,7 @@ public struct Resource
 	public float baseYieldPerHour;
 }
 
-public class Tile : PanelObject, IListener
+public class Tile : PanelObject
 {
 	public enum FogOfWar { Visible, Partial, Invisible };
 
@@ -71,7 +71,7 @@ public class Tile : PanelObject, IListener
 
 		if(parentTile == null)
 		{
-			TimeController.GetInstance().AddDailyUpdateListener(this, TimeController.Order.Tile);
+			TimeController.GetInstance().AddDailyUpdateListener(UpdateTile, TimeController.PriorityCategory.Tile);
 		}
 
 		// Rotate Fog of War randomly
@@ -133,6 +133,34 @@ public class Tile : PanelObject, IListener
 		SetFogOfWar(Tile.FogOfWar.Partial);
 	}
 
+	public void UpdateTile(double time)
+	{
+		// Only called on Overworld Map Tiles, Listener is not set up for Encounter Map Tiles
+
+		// Update Resources
+		foreach(Resource resource in resourceTypes)
+		{
+			if(resource.localMaxAmount <= 0)
+			{
+				continue;
+			}
+
+			if(resource.forestDependent)
+			{
+				resourceDictionary[resource.goodName] = Mathf.Clamp(
+					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary["Wood"] / (float)woodReference.localMaxAmount)),
+					0, resource.localMaxAmount);
+			}
+			else
+			{
+				resourceDictionary[resource.goodName] = Mathf.Clamp(
+					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary[resource.goodName] / (float)resource.localMaxAmount)),
+					0, resource.localMaxAmount);
+			}
+		}
+		UpdateResourceDisplay();
+	}
+
 	public override void UpdatePanel(RectTransform panel)
 	{
 		base.UpdatePanel(panel);
@@ -192,34 +220,6 @@ public class Tile : PanelObject, IListener
 			GameObject.Destroy(resourceParent.GetChild(i).gameObject);
 			++i;
 		}
-	}
-
-	public void Notify()
-	{
-		// Only called on Overworld Map Tiles, Listener is not set up for Encounter Map Tiles
-
-		// Update Resources
-		foreach(Resource resource in resourceTypes)
-		{
-			if(resource.localMaxAmount <= 0)
-			{
-				continue;
-			}
-
-			if(resource.forestDependent)
-			{
-				resourceDictionary[resource.goodName] = Mathf.Clamp(
-					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary["Wood"] / (float)woodReference.localMaxAmount)),
-					0, resource.localMaxAmount);
-			}
-			else
-			{
-				resourceDictionary[resource.goodName] = Mathf.Clamp(
-					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary[resource.goodName] / (float)resource.localMaxAmount)),
-					0, resource.localMaxAmount);
-			}
-		}
-		UpdateResourceDisplay();
 	}
 
 	public float CalculateMovementCost(Tile sourceTile = null, float movementCostFactor = 1.0f, Vector2? startPosition = null, Vector2? targetPosition = null)
