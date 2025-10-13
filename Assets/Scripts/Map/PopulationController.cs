@@ -443,7 +443,7 @@ public class PopulationController : MonoBehaviour
 
 	public bool ChangeIncome(int oldIncome, int newIncome, int count)
 	{
-		if(count <= 0)
+		if(count <= 0 || oldIncome == newIncome)
 		{
 			return true;
 		}
@@ -465,7 +465,7 @@ public class PopulationController : MonoBehaviour
 
 	public int ChangeIncome(PopulationGroup oldPopulationGroup, int newIncome, int count, bool updateDatabase = true)
 	{
-		if(count <= 0)
+		if(count <= 0 || oldPopulationGroup.Count <= 0 || oldPopulationGroup.Income == newIncome)
 		{
 			return 0;
 		}

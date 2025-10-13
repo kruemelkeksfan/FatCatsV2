@@ -107,6 +107,7 @@ public class ConstructionPanelController : PanelObject
 			RectTransform buildingInfo = (RectTransform)infoParent.GetChild(2);
 
 			TMP_InputField buildingAmountField = buildingInfo.GetChild(1).GetComponent<TMP_InputField>();
+			buildingAmountField.text = currentConstructionCount.ToString();
 			buildingAmountField.onEndEdit.RemoveAllListeners();
 			buildingAmountField.onEndEdit.AddListener(delegate
 			{

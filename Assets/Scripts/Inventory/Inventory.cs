@@ -727,6 +727,7 @@ public class Inventory : PanelObject
 	public void ChangeBulkCapacity(int amount)
 	{
 		bulkCapacity += amount;
+		panelManager.QueuePanelUpdate(this);
 	}
 
 	public bool IsLocalPlayerInventory()

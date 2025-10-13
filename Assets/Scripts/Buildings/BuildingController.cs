@@ -23,10 +23,10 @@ public class BuildingController : PanelObject
 	private List<Building> buildings = null;
 	private Dictionary<Building, ConstructionSite> constructionSites = null;
 	private string townName = "Unknown Town";
-	private Dictionary<int, List<Building>> jobsByWage = null;
+	private Dictionary<int, HashSet<Building>> jobsByWage = null;
 	private Dictionary<string, Inventory> warehouseInventories = null;
 	private Building currentBuilding = null;
-	private int currentDestructionCount = 1;
+	private int currentDestructionCount = 0;
 	private int currentWageGroupSetting = 0;
 
 	private static int CompareBuildings(Building lho, Building rho)
@@ -89,7 +89,7 @@ public class BuildingController : PanelObject
 
 		buildings = new List<Building>();
 		constructionSites = new Dictionary<Building, ConstructionSite>();
-		jobsByWage = new Dictionary<int, List<Building>>();
+		jobsByWage = new Dictionary<int, HashSet<Building>>();
 		warehouseInventories = new Dictionary<string, Inventory>();
 	}
 
@@ -228,6 +228,11 @@ public class BuildingController : PanelObject
 					}
 
 					building.size -= constructionSites[building].destructionCount;
+
+					// Stop Construction, in case it was only partial Deconstruction of a larger Building Complex
+					building.underConstruction = false;
+					constructionSites.Remove(building);
+
 					if(building.size <= 0)
 					{
 						DestroyBuilding(building);
@@ -325,7 +330,7 @@ public class BuildingController : PanelObject
 		foreach(KeyValuePair<int, int> firePosition in hireFireLists.Item2)
 		{
 			int peopleLeftToFire = firePosition.Value;
-			List<Building> fireBuildings = jobsByWage[firePosition.Key];
+			List<Building> fireBuildings = new List<Building>(jobsByWage[firePosition.Key]);
 			for(int i = fireBuildings.Count - 1; i >= 0; --i)   // Fire newest Employees first
 			{
 				if(fireBuildings[i].townWorkers <= 0)
@@ -359,7 +364,7 @@ public class BuildingController : PanelObject
 			int wage = hirePosition.Key.wage;
 			if(!jobsByWage.ContainsKey(wage))
 			{
-				jobsByWage.Add(wage, new List<Building>());
+				jobsByWage.Add(wage, new HashSet<Building>());
 			}
 			jobsByWage[wage].Add(hirePosition.Key);
 		}
@@ -431,27 +436,30 @@ public class BuildingController : PanelObject
 			int oldWage = populationController.GetWage(playerName, currentWageGroupSetting);
 			int newWage = wageGroupField.text != string.Empty ? Mathf.Max(Int32.Parse(wageGroupField.text), 1) : 1;
 
-			populationController.SetWage(playerName, currentWageGroupSetting, newWage, wageGroupCount);
-
-			if(jobsByWage.ContainsKey(oldWage))
+			if(oldWage != newWage)
 			{
-				Building[] wageBuildings = jobsByWage[oldWage].ToArray();
-				foreach(Building building in wageBuildings)
+				populationController.SetWage(playerName, currentWageGroupSetting, newWage, wageGroupCount);
+
+				if(jobsByWage.ContainsKey(oldWage))
 				{
-					jobsByWage[oldWage].Remove(building);
-					if(!jobsByWage.ContainsKey(newWage))
+					List<Building> wageBuildings = new List<Building>(jobsByWage[oldWage]);
+					foreach(Building building in wageBuildings)
 					{
-						jobsByWage.Add(newWage, new List<Building>());
+						jobsByWage[oldWage].Remove(building);
+						if(!jobsByWage.ContainsKey(newWage))
+						{
+							jobsByWage.Add(newWage, new HashSet<Building>());
+						}
+						jobsByWage[newWage].Add(currentBuilding);
+
+						populationController.ChangeIncome(oldWage, newWage, building.townWorkers);
+
+						building.wage = newWage;
 					}
-					jobsByWage[newWage].Add(currentBuilding);
-
-					populationController.ChangeIncome(oldWage, newWage, building.townWorkers);
-
-					building.wage = newWage;
 				}
-			}
 
-			panelManager.QueuePanelUpdate(this);
+				panelManager.QueuePanelUpdate(this);
+			}
 		});
 
 		// LIST
@@ -480,7 +488,7 @@ public class BuildingController : PanelObject
 
 				buildingInfo = (RectTransform)buildingEntry.GetChild(2);
 
-				buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = building.GetCurrentWorkerCount() + "/" + building.buildingData.maxWorkerCount;
+				buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = building.GetCurrentWorkerCount() + "/" + (building.buildingData.maxWorkerCount * building.size);
 				buildingInfo.GetChild(4).GetComponent<TMP_Text>().text = building.currentProductId >= 0 ? (building.buildingData.products[building.currentProductId] + " (" + building.CalculateOutput() + "/day)") : "none";
 			}
 			// Construction Site
@@ -533,6 +541,7 @@ public class BuildingController : PanelObject
 			listButton.onClick.AddListener(delegate
 			{
 				currentBuilding = localBuilding;
+				currentDestructionCount = 0;
 				panelManager.QueuePanelUpdate(this);
 			});
 
@@ -676,7 +685,7 @@ public class BuildingController : PanelObject
 
 						if(!jobsByWage.ContainsKey(newWage))
 						{
-							jobsByWage.Add(newWage, new List<Building>());
+							jobsByWage.Add(newWage, new HashSet<Building>());
 						}
 						jobsByWage[newWage].Add(currentBuilding);
 					}
@@ -781,10 +790,14 @@ public class BuildingController : PanelObject
 					repairButton.onClick.RemoveAllListeners();
 					repairButton.onClick.AddListener(delegate
 					{
-						StartConstructionSite(currentBuilding, new ConstructionSite(currentBuilding, ConstructionSite.Action.Repair), true, true);
+						StartConstructionSite(currentBuilding, new ConstructionSite(currentBuilding, ConstructionSite.Action.Repair), true);
 					});
 
 					TMP_InputField destructionAmountField = buildingActions.GetChild(5).GetComponent<TMP_InputField>();
+					if(currentDestructionCount <= 0)
+					{
+						currentDestructionCount = currentBuilding.size;
+					}
 					destructionAmountField.text = currentDestructionCount.ToString();
 					destructionAmountField.onEndEdit.RemoveAllListeners();
 					destructionAmountField.onEndEdit.AddListener(delegate
@@ -807,7 +820,7 @@ public class BuildingController : PanelObject
 					destructButton.onClick.RemoveAllListeners();
 					destructButton.onClick.AddListener(delegate
 					{
-						StartConstructionSite(currentBuilding, new ConstructionSite(currentBuilding, ConstructionSite.Action.Deconstruction, currentDestructionCount), true, true);
+						StartConstructionSite(currentBuilding, new ConstructionSite(currentBuilding, ConstructionSite.Action.Deconstruction, currentDestructionCount), true);
 					});
 
 					buildingActions.gameObject.SetActive(true);
@@ -948,8 +961,9 @@ public class BuildingController : PanelObject
 								}
 							}
 
-							TerminateConstructionSite(currentBuilding, false);
+							TerminateConstructionSite(currentBuilding, !(constructionSite.action == ConstructionSite.Action.Construction));
 							currentBuilding = null;
+							currentDestructionCount = 0;
 						});
 					});
 					cancelButton.gameObject.SetActive(true);
@@ -982,11 +996,16 @@ public class BuildingController : PanelObject
 	public bool KillTownWorkers(int income, int count)
 	{
 		int peopleLeftToKill = count;
-		List<Building> killBuildings = jobsByWage[income];
+		List<Building> killBuildings = new List<Building>(jobsByWage[income]);
 		for(int i = killBuildings.Count - 1; i >= 0; --i)
 		{
 			int fireCount = Mathf.Min(killBuildings[i].townWorkers, peopleLeftToKill);
 			killBuildings[i].townWorkers -= fireCount;
+
+			if(killBuildings[i].townWorkers <= 0)
+			{
+				jobsByWage[income].Remove(killBuildings[i]);
+			}
 
 			peopleLeftToKill -= fireCount;
 
@@ -1014,20 +1033,21 @@ public class BuildingController : PanelObject
 		buildings.Add(building);
 		buildings.Sort(CompareBuildings);
 
-		StartConstructionSite(building, new ConstructionSite(building, ConstructionSite.Action.Construction), false, false);
+		StartConstructionSite(building, new ConstructionSite(building, ConstructionSite.Action.Construction), false);
 
 		if(!jobsByWage.ContainsKey(building.wage))
 		{
-			jobsByWage.Add(building.wage, new List<Building>());
+			jobsByWage.Add(building.wage, new HashSet<Building>());
 		}
 		jobsByWage[building.wage].Add(building);
 
 		panelManager.OpenPanel(this);
 	}
 
-	public void StartConstructionSite(Building building, ConstructionSite constructionSite, bool fireWorkers, bool existingBuilding)
+	public void StartConstructionSite(Building building, ConstructionSite constructionSite, bool fireWorkers)
 	{
-		if(building.buildingData.buildingName == "Warehouse" && existingBuilding)
+		if(building.buildingData.buildingName == "Warehouse"
+			&& (constructionSite.action == ConstructionSite.Action.Repair || constructionSite.action == ConstructionSite.Action.Deconstruction))
 		{
 			string ownerName = (building.owner != null) ? building.owner.GetPlayerName() : ("/" + townName);
 			warehouseInventories[ownerName].ChangeBulkCapacity(Mathf.FloorToInt(-building.size * building.buildingStyle.baseQuality * warehouseBulkPerSize));
@@ -1051,9 +1071,9 @@ public class BuildingController : PanelObject
 		panelManager.QueuePanelUpdate(this);
 	}
 
-	public void TerminateConstructionSite(Building building, bool completion)
+	public void TerminateConstructionSite(Building building, bool increaseInventoryCapacity)
 	{
-		if(building.buildingData.buildingName == "Warehouse" && building.underConstruction && completion)
+		if(building.buildingData.buildingName == "Warehouse" && building.underConstruction && increaseInventoryCapacity)
 		{
 			string ownerName = (building.owner != null) ? building.owner.GetPlayerName() : ("/" + townName);
 			warehouseInventories[ownerName].ChangeBulkCapacity(Mathf.FloorToInt(building.size * building.buildingStyle.baseQuality * warehouseBulkPerSize));
@@ -1076,12 +1096,6 @@ public class BuildingController : PanelObject
 
 	public void DestroyBuilding(Building building)
 	{
-		if(building.buildingData.buildingName == "Warehouse" && !building.underConstruction)
-		{
-			string ownerName = (building.owner != null) ? building.owner.GetPlayerName() : ("/" + townName);
-			warehouseInventories[ownerName].ChangeBulkCapacity(Mathf.FloorToInt(-building.size * building.buildingStyle.baseQuality * warehouseBulkPerSize));
-		}
-
 		populationController.ChangeIncome(building.wage, 0, building.townWorkers);
 		Player[] firedPlayerWorkers = building.playerWorkers.ToArray();
 		foreach(Player player in firedPlayerWorkers)
@@ -1093,6 +1107,7 @@ public class BuildingController : PanelObject
 		if(building == currentBuilding)
 		{
 			currentBuilding = null;
+			currentDestructionCount = 0;
 		}
 
 		if(building.underConstruction)
