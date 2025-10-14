@@ -149,8 +149,8 @@ public class Town : PanelObject
 				needEntry.GetChild(0).GetComponent<TMP_Text>().text = needData[i].goodCategory + (needData[i].essential ? "*" : "");
 			}
 
-			needEntry.GetChild(1).GetComponent<TMP_Text>().text = populationUpdateResults[0].income + " " + populationUpdateResults[0].needBudgets[i] + "G";
-			needEntry.GetChild(2).GetComponent<TMP_Text>().text = populationUpdateResults[populationUpdateResults.Count - 1].income + " " + populationUpdateResults[populationUpdateResults.Count - 1].needBudgets[i] + "G";
+			needEntry.GetChild(1).GetComponent<TMP_Text>().text = populationUpdateResults[0].needBudgets[i] + "G";
+			needEntry.GetChild(2).GetComponent<TMP_Text>().text = populationUpdateResults[populationUpdateResults.Count - 1].needBudgets[i] + "G";
 			Color richSupplyColor = populationUpdateResults[0].saleAmounts[i] >= needData[i].maxBuyAmount ? defaultFontColor : badColor;
 			Color poorSupplyColor = populationUpdateResults[populationUpdateResults.Count - 1].saleAmounts[i] >= needData[i].maxBuyAmount ? defaultFontColor : badColor;
 			TMP_Text richSupplyText = needEntry.GetChild(3).GetComponent<TMP_Text>();

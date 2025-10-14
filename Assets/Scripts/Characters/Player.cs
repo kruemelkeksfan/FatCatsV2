@@ -133,7 +133,11 @@ public class Player : MonoBehaviour
 		});
 
 		// Debug
-		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Fruits"), 1.0f, 1.0f, inventory), 2000);
+		//inventory.ChangeMoney(100);
+		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Fruits"), 1.0f, 1.0f, inventory), 200);
+		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Firewood"), 1.0f, 1.0f, inventory), 200);
+		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Herbs"), 1.0f, 1.0f, inventory), 200);
+		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Loincloths"), 1.0f, 1.0f, inventory), 200);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Wood"), 1.0f, 1.0f, inventory), 10);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Stone"), 1.0f, 1.0f, inventory), 20);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Twigs"), 0.5f, 0.5f, inventory), 500);
