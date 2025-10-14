@@ -427,7 +427,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   panelObjectType: 3
   baseBulkCapacity: 10
-  overCapacityDecayPerDay: 0.05
+  overCapacityDecayPerDay: 0.02
   inventoryEntryPrefab: {fileID: 7022509754344602647, guid: 77c1de4d948bf7341b712ee276010b65, type: 3}
   autoTradeEntryPrefab: {fileID: 7022509754344602647, guid: 109250cadcb758d4784a857db8bef0f2, type: 3}
 --- !u!1 &6657870193030673710

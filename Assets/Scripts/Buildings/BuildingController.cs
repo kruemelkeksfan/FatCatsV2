@@ -1114,6 +1114,11 @@ public class BuildingController : PanelObject
 		{
 			TerminateConstructionSite(building, false);
 		}
+		else if(building.buildingData.buildingName == "Warehouse")
+		{
+			string ownerName = (building.owner != null) ? building.owner.GetPlayerName() : ("/" + townName);
+			warehouseInventories[ownerName].ChangeBulkCapacity(Mathf.FloorToInt(-building.size * building.buildingStyle.baseQuality * warehouseBulkPerSize));
+		}
 		buildings.Remove(building);
 
 		panelManager.QueuePanelUpdate(this);

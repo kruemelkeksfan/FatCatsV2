@@ -168,7 +168,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   panelObjectType: 7
-  warehouseBulkPerSize: 2000
+  warehouseBulkPerSize: 4000
   buildingDegradationFactor: 1
   buildingEntryPrefab: {fileID: 7022509754344602647, guid: bca807b1d20dd964293cda2afe2cec4c, type: 3}
   constructionSiteEntryPrefab: {fileID: 7022509754344602647, guid: a572f0d92b4451a4eaac20dda31dea92, type: 3}

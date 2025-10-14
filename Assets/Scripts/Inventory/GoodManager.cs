@@ -13,8 +13,6 @@ public struct GoodData
 	public EquipmentCategory equipmentCategory;
 	[Tooltip("Handyness per Unit, naked Players Hands and Arms have a Bulk Capacity of 10.")]
 	public int bulk;
-	[Tooltip("Base Quality of this Good.")]
-	public float quality;
 	[Tooltip("How perishable this Good is.")]
 	public float decayPerDay;
 	public string[] statNames;

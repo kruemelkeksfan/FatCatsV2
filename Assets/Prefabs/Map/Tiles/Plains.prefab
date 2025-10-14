@@ -568,13 +568,13 @@ MonoBehaviour:
     tool: 0
     baseYieldPerHour: 5
   - goodName: Twigs
-    maxAmount: 15000000
+    maxAmount: 3000000
     localMaxAmount: 0
     maxGrowthAmount: 40000
     maxDepositSize: 3200
     forestDependent: 1
     tool: 0
-    baseYieldPerHour: 10
+    baseYieldPerHour: 2
   - goodName: Herbs
     maxAmount: 5000
     localMaxAmount: 0

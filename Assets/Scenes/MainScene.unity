@@ -397,7 +397,6 @@ MonoBehaviour:
     needCategory: 2
     equipmentCategory: 0
     bulk: 5
-    quality: 1
     decayPerDay: 0.05
     statNames: []
     statValues: 
@@ -405,7 +404,6 @@ MonoBehaviour:
     needCategory: 3
     equipmentCategory: 2
     bulk: 2
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -413,7 +411,6 @@ MonoBehaviour:
     needCategory: 3
     equipmentCategory: 3
     bulk: 2
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -421,7 +418,6 @@ MonoBehaviour:
     needCategory: 3
     equipmentCategory: 7
     bulk: 5
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -429,7 +425,6 @@ MonoBehaviour:
     needCategory: 6
     equipmentCategory: 11
     bulk: 5
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -437,7 +432,6 @@ MonoBehaviour:
     needCategory: 6
     equipmentCategory: 12
     bulk: 5
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -445,7 +439,6 @@ MonoBehaviour:
     needCategory: 4
     equipmentCategory: 0
     bulk: 1
-    quality: 1
     decayPerDay: 0.02
     statNames: []
     statValues: 
@@ -453,7 +446,6 @@ MonoBehaviour:
     needCategory: 0
     equipmentCategory: 0
     bulk: 1
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -461,7 +453,6 @@ MonoBehaviour:
     needCategory: 0
     equipmentCategory: 0
     bulk: 1
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -469,15 +460,13 @@ MonoBehaviour:
     needCategory: 7
     equipmentCategory: 0
     bulk: 5
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
   - goodName: Twigs
     needCategory: 1
     equipmentCategory: 0
-    bulk: 1
-    quality: 1
+    bulk: 5
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -485,7 +474,6 @@ MonoBehaviour:
     needCategory: 1
     equipmentCategory: 0
     bulk: 20
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -493,7 +481,6 @@ MonoBehaviour:
     needCategory: 1
     equipmentCategory: 0
     bulk: 10
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -501,7 +488,6 @@ MonoBehaviour:
     needCategory: 0
     equipmentCategory: 0
     bulk: 10
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -509,7 +495,6 @@ MonoBehaviour:
     needCategory: 0
     equipmentCategory: 0
     bulk: 10
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -517,7 +502,6 @@ MonoBehaviour:
     needCategory: 0
     equipmentCategory: 0
     bulk: 5
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -525,7 +509,6 @@ MonoBehaviour:
     needCategory: 7
     equipmentCategory: 0
     bulk: 5
-    quality: 1
     decayPerDay: 0
     statNames: []
     statValues: 
@@ -2159,7 +2142,7 @@ MonoBehaviour:
     resourceProductIds: 
     resources: []
     resourceInputs: 
-    buildingTime: 10
+    buildingTime: 15
     jobTitle: Administrator
     maxWorkerCount: 1
   - buildingName: Lumberjack Hut
@@ -2191,13 +2174,13 @@ MonoBehaviour:
     - Fruits
     - Flax
     - Herbs
-    productOutputs: 140000001400000014000000
+    productOutputs: 0a0000000500000005000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
     buildingTime: 50
     jobTitle: Farmer
-    maxWorkerCount: 5
+    maxWorkerCount: 4
   - buildingName: Firewood Splitter
     description: Produces Firewood from Wood or Twigs
     products:
@@ -2208,8 +2191,8 @@ MonoBehaviour:
     resources:
     - Wood
     - Twigs
-    resourceInputs: 0400000014000000
-    buildingTime: 20
+    resourceInputs: 0400000006000000
+    buildingTime: 10
     jobTitle: Woodsplitter
     maxWorkerCount: 1
   - buildingName: Flax Weaving Mill
@@ -2246,7 +2229,7 @@ MonoBehaviour:
     baseQuality: 0.05
     materials:
     - Twigs
-    materialAmountPerDay: 05000000
+    materialAmountPerDay: 01000000
   - buildingStyleName: Log Cabin
     baseQuality: 0.5
     materials:
