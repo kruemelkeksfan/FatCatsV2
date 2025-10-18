@@ -123,13 +123,13 @@ public class BuildingController : PanelObject
 			if(!buildings[i].underConstruction && buildings[i].wantedWorkers > 0)
 			{
 				// Resource Checking
-				int minProducedItems = buildings[i].CalculateOutput();
+				int minProductionBatches = buildings[i].GetCurrentWorkerCount();
 				foreach(Tuple<string, int> resourceInput in buildings[i].currentResourceInputs)
 				{
-					int producedItems = (buildings[i].connectedInventory.GetInventoryAmount(resourceInput.Item1) / resourceInput.Item2) * minProducedItems;
-					if(producedItems < minProducedItems)
+					int possibleProductionBatches = buildings[i].connectedInventory.GetInventoryAmount(resourceInput.Item1) / resourceInput.Item2;
+					if(possibleProductionBatches < minProductionBatches)
 					{
-						minProducedItems = producedItems;
+						minProductionBatches = possibleProductionBatches;
 						infoController.AddMessage("Not enough " + resourceInput.Item1 + " in " + townName + "!", true, true);
 					}
 				}
@@ -139,7 +139,7 @@ public class BuildingController : PanelObject
 				int totalResourceAmount = 0;
 				foreach(Tuple<string, int> resourceInput in buildings[i].currentResourceInputs)
 				{
-					List<Tuple<Good, int>> withdrawnGoods = buildings[i].connectedInventory.WithdrawGoodUnchecked(resourceInput.Item1, minProducedItems * resourceInput.Item2, true, false);
+					List<Tuple<Good, int>> withdrawnGoods = buildings[i].connectedInventory.WithdrawGoodUnchecked(resourceInput.Item1, minProductionBatches * resourceInput.Item2, true, false);
 					foreach(Tuple<Good, int> withdrawnGood in withdrawnGoods)
 					{
 						resourceQualitySum += withdrawnGood.Item1.quality * withdrawnGood.Item2;
@@ -164,7 +164,7 @@ public class BuildingController : PanelObject
 				{
 					buildings[i].connectedInventory.DepositGood(
 						new Good(goodManager.GetGoodData(buildings[i].buildingData.products[buildings[i].currentProductId]), productQuality, productQuality, buildings[i].connectedInventory),
-						minProducedItems);
+						buildings[i].buildingData.productOutputs[buildings[i].currentProductId] * minProductionBatches);
 				}
 			}
 
@@ -210,6 +210,7 @@ public class BuildingController : PanelObject
 				else if(constructionSites[building].action == ConstructionSite.Action.Repair)
 				{
 					building.quality += constructionSites[building].materialQuality;
+					building.quality = Mathf.Clamp(building.quality, 0.0f, building.buildingStyle.baseQuality); // Clamping is necessary, because necessary Repair Materials are rounded up
 					building.decayWarningIssued = false;
 					TerminateConstructionSite(building, true);
 					infoController.AddMessage("Repair of " + building.buildingData.buildingName + " complete", false, false);
@@ -842,13 +843,21 @@ public class BuildingController : PanelObject
 						// Building Materials
 						constructionActions.GetChild(0).GetComponent<TMP_Text>().text = "Missing Materials:";
 						StringBuilder costString = new StringBuilder();
+						bool missingMaterials = false;
 						for(int k = 0; k < constructionSite.necessaryBuildingMaterials.Count; ++k)
 						{
 							if(k > 0)
 							{
 								costString.Append(", ");
 							}
-							costString.Append(constructionSite.necessaryBuildingMaterials[k].Item2 - constructionSite.storedBuildingMaterials[k].Item2);
+
+							int missingMaterialAmount = constructionSite.necessaryBuildingMaterials[k].Item2 - constructionSite.storedBuildingMaterials[k].Item2;
+							if(missingMaterialAmount > 0)
+							{
+								missingMaterials = true;
+							}
+
+							costString.Append(missingMaterialAmount);
 							costString.Append(" ");
 							costString.Append(constructionSite.necessaryBuildingMaterials[k].Item1);
 						}
@@ -859,39 +868,22 @@ public class BuildingController : PanelObject
 						constructionCostText.text = costString.ToString();
 
 						// Add Materials
-						addMaterialButton.onClick.RemoveAllListeners();
-						addMaterialButton.onClick.AddListener(delegate
+						if(missingMaterials)
 						{
-							for(int j = 0; j < constructionSite.necessaryBuildingMaterials.Count; ++j)
+							addMaterialButton.onClick.RemoveAllListeners();
+							addMaterialButton.onClick.AddListener(delegate
 							{
-								int storedAmount = constructionSite.storedBuildingMaterials[j].Item2;
-
-								List<Tuple<Good, int>> sortedInventoryContents = playerInventory.GetStoredGoods(constructionSite.necessaryBuildingMaterials[j].Item1, Inventory.SortType.PerceivedQualityDescending);
-								foreach(Tuple<Good, int> inventoryGood in sortedInventoryContents)
+								for(int j = 0; j < constructionSite.necessaryBuildingMaterials.Count; ++j)
 								{
-									int addedAmount = playerInventory.WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, true);
-									storedAmount += addedAmount;
-									constructionSite.materialQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
-									constructionSite.materialQuality = Mathf.Min(constructionSite.materialQuality, currentBuilding.buildingStyle.baseQuality - currentBuilding.quality); // Necessary, because necessary Repair Materials are rounded up
-									if(addedAmount > 0)
-									{
-										constructionSite.enoughMaterial = true;
-									}
-									if(storedAmount >= constructionSite.necessaryBuildingMaterials[j].Item2)
-									{
-										break;
-									}
-								}
+									int storedAmount = constructionSite.storedBuildingMaterials[j].Item2;
+									float addedQuality = 0.0f;
 
-								if(storedAmount < constructionSite.necessaryBuildingMaterials[j].Item2 && warehouseInventories.ContainsKey(playerName))
-								{
-									sortedInventoryContents = warehouseInventories[playerName].GetStoredGoods(constructionSite.necessaryBuildingMaterials[j].Item1, Inventory.SortType.PerceivedQualityDescending);
+									List<Tuple<Good, int>> sortedInventoryContents = playerInventory.GetStoredGoods(constructionSite.necessaryBuildingMaterials[j].Item1, Inventory.SortType.PerceivedQualityDescending);
 									foreach(Tuple<Good, int> inventoryGood in sortedInventoryContents)
 									{
-										int addedAmount = warehouseInventories[playerName].WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, false);
+										int addedAmount = playerInventory.WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, true);
 										storedAmount += addedAmount;
-										constructionSite.materialQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
-										constructionSite.materialQuality = Mathf.Min(constructionSite.materialQuality, currentBuilding.buildingStyle.baseQuality - currentBuilding.quality); // Necessary, because necessary Repair Materials are rounded up
+										addedQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
 										if(addedAmount > 0)
 										{
 											constructionSite.enoughMaterial = true;
@@ -901,18 +893,44 @@ public class BuildingController : PanelObject
 											break;
 										}
 									}
-								}
 
-								constructionSite.storedBuildingMaterials[j] = new Tuple<string, int>(constructionSite.storedBuildingMaterials[j].Item1, storedAmount);
-								if(constructionSite.action == ConstructionSite.Action.Construction)
-								{
-									currentBuilding.quality += constructionSite.materialQuality;
-								}
+									if(storedAmount < constructionSite.necessaryBuildingMaterials[j].Item2 && warehouseInventories.ContainsKey(playerName))
+									{
+										sortedInventoryContents = warehouseInventories[playerName].GetStoredGoods(constructionSite.necessaryBuildingMaterials[j].Item1, Inventory.SortType.PerceivedQualityDescending);
+										foreach(Tuple<Good, int> inventoryGood in sortedInventoryContents)
+										{
+											int addedAmount = warehouseInventories[playerName].WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, false);
+											storedAmount += addedAmount;
+											addedQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+											if(addedAmount > 0)
+											{
+												constructionSite.enoughMaterial = true;
+											}
+											if(storedAmount >= constructionSite.necessaryBuildingMaterials[j].Item2)
+											{
+												break;
+											}
+										}
+									}
 
-								panelManager.QueuePanelUpdate(this);
-							}
-						});
-						addMaterialButton.gameObject.SetActive(true);
+									constructionSite.materialQuality += addedQuality;
+
+									constructionSite.storedBuildingMaterials[j] = new Tuple<string, int>(constructionSite.storedBuildingMaterials[j].Item1, storedAmount);
+									if(constructionSite.action == ConstructionSite.Action.Construction)
+									{
+										currentBuilding.quality += addedQuality;
+										currentBuilding.quality = Mathf.Clamp(currentBuilding.quality, 0.0f, currentBuilding.buildingStyle.baseQuality); // Clamping is necessary, because necessary Repair Materials are rounded up
+									}
+
+									panelManager.QueuePanelUpdate(this);
+								}
+							});
+							addMaterialButton.gameObject.SetActive(true);
+						}
+						else
+						{
+							addMaterialButton.gameObject.SetActive(false);
+						}
 					}
 					else
 					{

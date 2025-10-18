@@ -230,7 +230,7 @@ public class Inventory : PanelObject
 			topBar.GetChild(1).GetComponent<TMP_Text>().text = "<color=red>" + bulk + "/" + bulkCapacity + "</color>";
 		}
 		topBar.GetChild(3).GetComponent<TMP_Text>().text = money + "G";
-		topBar.GetChild(10).GetComponent<TMP_Text>().text = (GetOvercapacityDecay() * 100.0f).ToString("F1") + "%";
+		topBar.GetChild(10).GetComponent<TMP_Text>().text = (GetOvercapacityDecay() * 100.0f).ToString("F1") + "%/day";
 
 		Button moneyTransferButton = topBar.GetChild(7).GetComponent<Button>();
 		Inventory alternativeInventory;

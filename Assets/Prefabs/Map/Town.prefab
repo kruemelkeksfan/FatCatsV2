@@ -210,8 +210,8 @@ MonoBehaviour:
     essential: 1
   - goodCategory: 7
     budgetPercentage: 0.2
-    minBuyAmount: 1
-    maxBuyAmount: 2
+    minBuyAmount: 0.2
+    maxBuyAmount: 1
     essential: 1
   - goodCategory: 3
     budgetPercentage: 0.3
@@ -228,7 +228,7 @@ MonoBehaviour:
     minBuyAmount: 0.1
     maxBuyAmount: 5
     essential: 0
-  startingPopulation: 10
+  startingPopulation: 15
   maxPopulationGainFactor: 0.2
   startingMoney: 100
 --- !u!65 &8301208982883198931

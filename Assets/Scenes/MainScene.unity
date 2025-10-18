@@ -2150,18 +2150,32 @@ MonoBehaviour:
     products:
     - Wood
     - Twigs
-    productOutputs: 0400000028000000
+    productOutputs: 0400000008000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
     buildingTime: 20
     jobTitle: Lumberjack
     maxWorkerCount: 1
+  - buildingName: Firewood Splitter
+    description: Produces Firewood from Wood or Twigs
+    products:
+    - Firewood
+    - Firewood
+    productOutputs: 0800000008000000
+    resourceProductIds: 0000000001000000
+    resources:
+    - Wood
+    - Twigs
+    resourceInputs: 0200000004000000
+    buildingTime: 10
+    jobTitle: Woodsplitter
+    maxWorkerCount: 1
   - buildingName: Quarry
     description: Produces Stone
     products:
     - Stone
-    productOutputs: 14000000
+    productOutputs: 04000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
@@ -2174,27 +2188,13 @@ MonoBehaviour:
     - Fruits
     - Flax
     - Herbs
-    productOutputs: 0a0000000500000005000000
+    productOutputs: 140000000a0000000a000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
-    buildingTime: 50
+    buildingTime: 30
     jobTitle: Farmer
     maxWorkerCount: 4
-  - buildingName: Firewood Splitter
-    description: Produces Firewood from Wood or Twigs
-    products:
-    - Firewood
-    - Firewood
-    productOutputs: 0a0000000a000000
-    resourceProductIds: 0000000001000000
-    resources:
-    - Wood
-    - Twigs
-    resourceInputs: 0400000006000000
-    buildingTime: 10
-    jobTitle: Woodsplitter
-    maxWorkerCount: 1
   - buildingName: Flax Weaving Mill
     description: Produces Cloth from Flax and Firewood
     products:
@@ -2204,7 +2204,7 @@ MonoBehaviour:
     resources:
     - Flax
     - Firewood
-    resourceInputs: 1400000005000000
+    resourceInputs: 0a00000004000000
     buildingTime: 40
     jobTitle: Weaver
     maxWorkerCount: 2
@@ -2235,17 +2235,12 @@ MonoBehaviour:
     materials:
     - Wood
     materialAmountPerDay: 08000000
-  - buildingStyleName: Stone Base
-    baseQuality: 0.75
-    materials:
-    - Stone
-    - Wood
-    materialAmountPerDay: 0600000006000000
-  - buildingStyleName: Stone Brick
+  - buildingStyleName: Stone House
     baseQuality: 1
     materials:
+    - Wood
     - Stone
-    materialAmountPerDay: 14000000
+    materialAmountPerDay: 040000000c000000
   constructionParallelizationPotential: 0.95
   destructionYieldFactor: 0.8
 --- !u!4 &968220741

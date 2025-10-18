@@ -215,7 +215,7 @@ public class PopulationController : MonoBehaviour
 						break;
 					}
 
-					int buyAmount = Math.Min(Math.Min(currentOffer.Item2.count, needAmount), budget / currentOffer.Item2.price);
+					int buyAmount = Math.Min(Math.Min(currentOffer.Item2.count, needAmount), (currentOffer.Item2.price > 0) ? (budget / currentOffer.Item2.price) : int.MaxValue);
 					if(buyAmount <= 0)
 					{
 						break;
@@ -250,8 +250,10 @@ public class PopulationController : MonoBehaviour
 						}
 
 						// Break if already bought Item has a better Quality-Ratio than the better Offer Candidate
-						if((shoppingCart[shoppingCartIndex].Item1.perceivedQuality / shoppingCart[shoppingCartIndex].Item2.price)
-							>= (leftoverOffers[betterOfferIndex].Item1.perceivedQuality / leftoverOffers[betterOfferIndex].Item2.price))
+						if(shoppingCart[shoppingCartIndex].Item2.price <= 0
+							|| (leftoverOffers[betterOfferIndex].Item2.price > 0
+							&& (shoppingCart[shoppingCartIndex].Item1.perceivedQuality / shoppingCart[shoppingCartIndex].Item2.price)
+							>= (leftoverOffers[betterOfferIndex].Item1.perceivedQuality / leftoverOffers[betterOfferIndex].Item2.price)))
 						{
 							break;
 						}

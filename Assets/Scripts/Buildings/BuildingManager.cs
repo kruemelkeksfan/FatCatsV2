@@ -89,7 +89,7 @@ public class Building
 	{
 		if(currentProductId >= 0)
 		{
-			return buildingData.productOutputs[currentProductId] * size * GetCurrentWorkerCount();
+			return buildingData.productOutputs[currentProductId] * GetCurrentWorkerCount();
 		}
 
 		return 0;

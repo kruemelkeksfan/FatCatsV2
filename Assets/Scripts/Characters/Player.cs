@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
@@ -140,7 +139,7 @@ public class Player : MonoBehaviour
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Loincloths"), 1.0f, 1.0f, inventory), 200);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Wood"), 1.0f, 1.0f, inventory), 10);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Stone"), 1.0f, 1.0f, inventory), 20);
-		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Twigs"), 0.5f, 0.5f, inventory), 500);
+		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Twigs"), 0.5f, 0.5f, inventory), 100);
 		//inventory.DepositGood(new Good(GoodManager.GetInstance().GetGoodData("Wood"), 0.5f, 0.5f, inventory), 500);
 		/*for(int i = 0; i < 100; ++i)
 		{
