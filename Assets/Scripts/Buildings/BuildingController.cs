@@ -228,13 +228,13 @@ public class BuildingController : PanelObject
 
 					building.size -= constructionSites[building].destructionCount;
 
-					// Stop Construction, in case it was only partial Deconstruction of a larger Building Complex
-					building.underConstruction = false;
-					constructionSites.Remove(building);
-
 					if(building.size <= 0)
 					{
 						DestroyBuilding(building);
+					}
+					else
+					{
+						TerminateConstructionSite(building, false);
 					}
 
 					infoController.AddMessage("Deconstruction of " + building.buildingData.buildingName + " complete", false, false);
