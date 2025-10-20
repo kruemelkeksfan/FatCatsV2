@@ -46,7 +46,7 @@ public class Building
 	public bool underConstruction;
 	public bool decayWarningIssued;
 
-	public Building(BuildingData buildingData, BuildingStyle buildingStyle, int size, Inventory connectedInventory, Player owner)
+	public Building(BuildingData buildingData, BuildingStyle buildingStyle, int size, int wage, Inventory connectedInventory, Player owner)
 	{
 		this.buildingData = buildingData;
 		this.buildingStyle = buildingStyle;
@@ -65,7 +65,7 @@ public class Building
 		townWorkers = 0;
 		playerWorkers = new List<Player>(1);
 		wantedWorkers = 0;
-		wage = 1;
+		this.wage = wage;
 		wageGroup = 0;
 		underConstruction = true;   // Has to be true on Initialization to know whether a Building is freshly built or renovated in BuildingController
 		decayWarningIssued = false;

@@ -23,7 +23,6 @@ public class BuildingController : PanelObject
 	private List<Building> buildings = null;
 	private Dictionary<Building, ConstructionSite> constructionSites = null;
 	private string townName = "Unknown Town";
-	private Dictionary<int, HashSet<Building>> jobsByWage = null;
 	private Dictionary<string, Inventory> warehouseInventories = null;
 	private Building currentBuilding = null;
 	private int currentDestructionCount = 0;
@@ -89,7 +88,6 @@ public class BuildingController : PanelObject
 
 		buildings = new List<Building>();
 		constructionSites = new Dictionary<Building, ConstructionSite>();
-		jobsByWage = new Dictionary<int, HashSet<Building>>();
 		warehouseInventories = new Dictionary<string, Inventory>();
 	}
 
@@ -331,24 +329,20 @@ public class BuildingController : PanelObject
 		foreach(KeyValuePair<int, int> firePosition in hireFireLists.Item2)
 		{
 			int peopleLeftToFire = firePosition.Value;
-			List<Building> fireBuildings = new List<Building>(jobsByWage[firePosition.Key]);
-			for(int i = fireBuildings.Count - 1; i >= 0; --i)   // Fire newest Employees first
+			foreach(Building building in buildings)
 			{
-				if(fireBuildings[i].townWorkers <= 0)
+				if(building.wage == firePosition.Key && building.townWorkers > 0)
 				{
-					jobsByWage[firePosition.Key].Remove(fireBuildings[i]);
-					continue;
-				}
+					int fireCount = Mathf.Min(building.townWorkers, peopleLeftToFire);
 
-				int fireCount = Mathf.Min(fireBuildings[i].townWorkers, peopleLeftToFire);
+					building.townWorkers -= fireCount;
 
-				fireBuildings[i].townWorkers -= fireCount;
+					peopleLeftToFire -= fireCount;
 
-				peopleLeftToFire -= fireCount;
-
-				if(peopleLeftToFire <= 0)
-				{
-					break;
+					if(peopleLeftToFire <= 0)
+					{
+						break;
+					}
 				}
 			}
 			if(peopleLeftToFire > 0)
@@ -361,13 +355,6 @@ public class BuildingController : PanelObject
 		foreach(KeyValuePair<Building, int> hirePosition in hireFireLists.Item1)
 		{
 			hirePosition.Key.townWorkers += hirePosition.Value;
-
-			int wage = hirePosition.Key.wage;
-			if(!jobsByWage.ContainsKey(wage))
-			{
-				jobsByWage.Add(wage, new HashSet<Building>());
-			}
-			jobsByWage[wage].Add(hirePosition.Key);
 		}
 
 		// Pay Workers
@@ -427,6 +414,7 @@ public class BuildingController : PanelObject
 		wageGroupSettingDropdown.onValueChanged.AddListener(delegate
 		{
 			currentWageGroupSetting = wageGroupSettingDropdown.value;
+			topInfoBar.GetChild(6).GetComponent<TMP_InputField>().text = populationController.GetWage(playerName, currentWageGroupSetting).ToString();
 		});
 
 		TMP_InputField wageGroupField = topInfoBar.GetChild(6).GetComponent<TMP_InputField>();
@@ -434,33 +422,20 @@ public class BuildingController : PanelObject
 		wageGroupField.onValueChanged.RemoveAllListeners();
 		wageGroupField.onValueChanged.AddListener(delegate
 		{
-			int oldWage = populationController.GetWage(playerName, currentWageGroupSetting);
 			int newWage = wageGroupField.text != string.Empty ? Mathf.Max(Int32.Parse(wageGroupField.text), 1) : 1;
 
-			if(oldWage != newWage)
+			populationController.SetWage(playerName, currentWageGroupSetting, newWage, wageGroupCount);
+
+			foreach(Building building in buildings)
 			{
-				populationController.SetWage(playerName, currentWageGroupSetting, newWage, wageGroupCount);
-
-				if(jobsByWage.ContainsKey(oldWage))
+				if(building.wageGroup == currentWageGroupSetting)
 				{
-					List<Building> wageBuildings = new List<Building>(jobsByWage[oldWage]);
-					foreach(Building building in wageBuildings)
-					{
-						jobsByWage[oldWage].Remove(building);
-						if(!jobsByWage.ContainsKey(newWage))
-						{
-							jobsByWage.Add(newWage, new HashSet<Building>());
-						}
-						jobsByWage[newWage].Add(currentBuilding);
-
-						populationController.ChangeIncome(oldWage, newWage, building.townWorkers);
-
-						building.wage = newWage;
-					}
+					populationController.ChangeIncome(building.wage, newWage, building.townWorkers);
+					building.wage = newWage;
 				}
-
-				panelManager.QueuePanelUpdate(this);
 			}
+
+			panelManager.QueuePanelUpdate(this);
 		});
 
 		// LIST
@@ -676,19 +651,8 @@ public class BuildingController : PanelObject
 					int newWage = populationController.GetWage(playerName, wageDropdown.value);
 					if(populationController.ChangeIncome(currentBuilding.wage, newWage, currentBuilding.townWorkers))
 					{
-						if(jobsByWage.ContainsKey(currentBuilding.wage))
-						{
-							jobsByWage[currentBuilding.wage].Remove(currentBuilding);
-						}
-
 						currentBuilding.wage = newWage;
 						currentBuilding.wageGroup = wageDropdown.value;
-
-						if(!jobsByWage.ContainsKey(newWage))
-						{
-							jobsByWage.Add(newWage, new HashSet<Building>());
-						}
-						jobsByWage[newWage].Add(currentBuilding);
 					}
 
 					panelManager.QueuePanelUpdate(this);
@@ -1013,23 +977,25 @@ public class BuildingController : PanelObject
 
 	public bool KillTownWorkers(int income, int count)
 	{
-		int peopleLeftToKill = count;
-		List<Building> killBuildings = new List<Building>(jobsByWage[income]);
-		for(int i = killBuildings.Count - 1; i >= 0; --i)
+		if(count <= 0)
 		{
-			int fireCount = Mathf.Min(killBuildings[i].townWorkers, peopleLeftToKill);
-			killBuildings[i].townWorkers -= fireCount;
+			return true;
+		}
 
-			if(killBuildings[i].townWorkers <= 0)
+		int peopleLeftToKill = count;
+		foreach(Building building in buildings)
+		{
+			if(building.wage == income)
 			{
-				jobsByWage[income].Remove(killBuildings[i]);
-			}
+				int fireCount = Mathf.Min(building.townWorkers, peopleLeftToKill);
+				building.townWorkers -= fireCount;
 
-			peopleLeftToKill -= fireCount;
+				peopleLeftToKill -= fireCount;
 
-			if(peopleLeftToKill <= 0)
-			{
-				return true;
+				if(peopleLeftToKill <= 0)
+				{
+					return true;
+				}
 			}
 		}
 
@@ -1037,27 +1003,25 @@ public class BuildingController : PanelObject
 		return false;
 	}
 
-	public void OrderBuilding(BuildingData buildingData, BuildingStyle buildingStyle, int constructionCount)
+	public void OrderBuilding(BuildingData buildingData, BuildingStyle buildingStyle, int constructionCount, Player owner = null)
 	{
-		Inventory playerInventory = EnsurePlayerPresence();
-		if(playerInventory == null)
+		if(owner == null)
 		{
-			Debug.LogWarning("Player is not present but can order Building in " + townName);
-			return;
+			Inventory playerInventory = EnsurePlayerPresence();
+			if(playerInventory == null)
+			{
+				Debug.LogWarning("Player is not present but can order Building in " + townName);
+				return;
+			}
+			owner = playerInventory.GetPlayer();
 		}
-		Player player = playerInventory.GetPlayer();
+		string ownerName = owner.GetPlayerName();
 
-		Building building = new Building(buildingData, buildingStyle, constructionCount, warehouseInventories[player.GetPlayerName()], player);
+		Building building = new Building(buildingData, buildingStyle, constructionCount, populationController.GetWage(ownerName, 0), warehouseInventories[ownerName], owner);
 		buildings.Add(building);
 		buildings.Sort(CompareBuildings);
 
 		StartConstructionSite(building, new ConstructionSite(building, ConstructionSite.Action.Construction), false);
-
-		if(!jobsByWage.ContainsKey(building.wage))
-		{
-			jobsByWage.Add(building.wage, new HashSet<Building>());
-		}
-		jobsByWage[building.wage].Add(building);
 
 		panelManager.OpenPanel(this);
 	}
