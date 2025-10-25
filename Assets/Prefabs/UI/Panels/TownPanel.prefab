@@ -2105,7 +2105,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 5833082540995393291, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_text
-      value: Budget
+      value: 'Budget
+
+        per Item'
       objectReference: {fileID: 0}
     - target: {fileID: 5833082540995393291, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_enableWordWrapping
@@ -2189,7 +2191,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 42.5
+      value: 37.5
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -4145,7 +4147,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 22.5
+      value: 32.5
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_SizeDelta.y
@@ -4193,7 +4195,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_AnchoredPosition.x
-      value: 60
+      value: 52.5
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_AnchoredPosition.y
@@ -5133,7 +5135,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_SizeDelta.x
-      value: 40
+      value: 35
       objectReference: {fileID: 0}
     - target: {fileID: 6328431877969049326, guid: 46b295ddaa62ad0489f15e2c67f4e4fe, type: 3}
       propertyPath: m_SizeDelta.y

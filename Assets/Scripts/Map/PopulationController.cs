@@ -197,7 +197,7 @@ public class PopulationController : MonoBehaviour
 				int budget = Mathf.FloorToInt(populationGroup.Savings * needData[i].budgetPercentage);
 				int needAmount = Mathf.CeilToInt(needData[i].maxBuyAmount * populationGroup.Count);
 
-				populationGroupUpdateResult.needBudgets[i] = Mathf.RoundToInt((float)budget / (float)populationGroup.Count);
+				populationGroupUpdateResult.needBudgets[i] = Mathf.RoundToInt(budget / (needData[i].maxBuyAmount * populationGroup.Count));
 
 				// Step 1: Buy Cheapest until maximum Demand is satisfied or Budget is exhausted
 				LinkedList<Tuple<Good, MarketOffer>> offers = new LinkedList<Tuple<Good, MarketOffer>>(market.GetSortedOffers(needData[i].goodCategory, Market.CompareOfferPrice));
@@ -322,11 +322,11 @@ public class PopulationController : MonoBehaviour
 				float needSatisfaction = 0.0f;
 				if(totalAmount < needData[i].minBuyAmount * populationGroup.Count)
 				{
-					needSatisfaction = (totalAmount / (needData[i].minBuyAmount * populationGroup.Count)) * 0.5f;
+					needSatisfaction = ((float) totalAmount / (float) (needData[i].minBuyAmount * populationGroup.Count)) * 0.5f;
 				}
 				else if(totalAmount < (needData[i].maxBuyAmount * populationGroup.Count))
 				{
-					needSatisfaction = 0.5f + ((totalAmount - needData[i].minBuyAmount) / ((needData[i].maxBuyAmount - needData[i].minBuyAmount) * populationGroup.Count)) * 0.25f;
+					needSatisfaction = 0.5f + ((float)(totalAmount - needData[i].minBuyAmount) / ((float) (needData[i].maxBuyAmount - needData[i].minBuyAmount) * populationGroup.Count)) * 0.25f;
 				}
 				else
 				{
@@ -338,7 +338,7 @@ public class PopulationController : MonoBehaviour
 				}
 				satisfaction += needSatisfaction;
 
-				populationGroupUpdateResult.saleAmounts[i] = Mathf.RoundToInt((float)totalAmount / (float)populationGroup.Count);
+				populationGroupUpdateResult.saleAmounts[i] = totalAmount;
 				populationGroupUpdateResult.saleQuality[i] = avgPerceivedQuality;
 				populationGroupUpdateResult.needSatisfactions[i] = needSatisfaction;
 			}

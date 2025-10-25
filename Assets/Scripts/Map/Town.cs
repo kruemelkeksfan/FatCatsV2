@@ -60,15 +60,14 @@ public class Town : PanelObject
 		RectTransform statPanel = (RectTransform)panel.GetChild(1);
 
 		// Number Stats
-		int totalPopulation = populationController.GetTotalPopulation();
 		int growth = populationController.GetGrowth();
 
-		statPanel.GetChild(1).GetComponent<TMP_Text>().text = totalPopulation.ToString();
+		statPanel.GetChild(1).GetComponent<TMP_Text>().text = populationController.GetTotalPopulation().ToString();
 		TMP_Text growthText = statPanel.GetChild(2).GetComponent<TMP_Text>();
 		if(growth > 0)
 		{
 			growthText.text = "+" + populationController.GetGrowth();
-			growthText.color = goodColor;
+			growthText.color = defaultFontColor;
 		}
 		else if(growth < 0)
 		{
@@ -83,9 +82,15 @@ public class Town : PanelObject
 		statPanel.GetChild(4).GetComponent<TMP_Text>().text = populationController.GetUnemployedPopulation().ToString();
 
 		// Population Data Table
-		RectTransform populationDataPanel = (RectTransform) statPanel.GetChild(5).GetChild(1);
+		RectTransform populationDataPanel = (RectTransform)statPanel.GetChild(5).GetChild(1);
 
 		List<PopulationController.PopulationGroupUpdateResult> populationUpdateResults = populationController.GetPopulationUpdateResults();
+
+		int oldPopulation = 0;
+		foreach(PopulationController.PopulationGroupUpdateResult populationGroupUpdateResult in populationUpdateResults)
+		{
+			oldPopulation += populationGroupUpdateResult.count;
+		}
 
 		populationDataPanel.GetChild(0).GetComponent<TMP_Text>().text = populationUpdateResults[0].income + "G";
 		populationDataPanel.GetChild(1).GetComponent<TMP_Text>().text = populationUpdateResults[populationUpdateResults.Count - 1].income + "G";
@@ -94,7 +99,7 @@ public class Town : PanelObject
 		{
 			avgIncome += populationGroupUpdate.income * populationGroupUpdate.count;
 		}
-		populationDataPanel.GetChild(2).GetComponent<TMP_Text>().text = Mathf.Round((float) avgIncome / (float) totalPopulation) + "G";
+		populationDataPanel.GetChild(2).GetComponent<TMP_Text>().text = Mathf.Round((float)avgIncome / (float)oldPopulation) + "G";
 
 		populationDataPanel.GetChild(3).GetComponent<TMP_Text>().text = populationUpdateResults[0].savings + "G";
 		populationDataPanel.GetChild(4).GetComponent<TMP_Text>().text = populationUpdateResults[populationUpdateResults.Count - 1].savings + "G";
@@ -103,7 +108,7 @@ public class Town : PanelObject
 		{
 			avgSavings += populationGroupUpdate.savings * populationGroupUpdate.count;
 		}
-		populationDataPanel.GetChild(5).GetComponent<TMP_Text>().text = Mathf.Round((float) avgSavings / (float) totalPopulation) + "G";
+		populationDataPanel.GetChild(5).GetComponent<TMP_Text>().text = Mathf.Round((float)avgSavings / (float)oldPopulation) + "G";
 
 		populationDataPanel.GetChild(6).GetComponent<TMP_Text>().text = populationUpdateResults[0].age.ToString();
 		populationDataPanel.GetChild(7).GetComponent<TMP_Text>().text = populationUpdateResults[populationUpdateResults.Count - 1].age.ToString();
@@ -112,7 +117,7 @@ public class Town : PanelObject
 		{
 			avgAge += populationGroupUpdate.age * populationGroupUpdate.count;
 		}
-		populationDataPanel.GetChild(8).GetComponent<TMP_Text>().text = Mathf.Round((float) avgAge / (float) totalPopulation).ToString();
+		populationDataPanel.GetChild(8).GetComponent<TMP_Text>().text = Mathf.Round((float)avgAge / (float)oldPopulation).ToString();
 
 		TMP_Text richSatisfactionText = populationDataPanel.GetChild(9).GetComponent<TMP_Text>();
 		richSatisfactionText.text = Mathf.Round(populationUpdateResults[0].satisfaction * 100.0f) + "%";
@@ -127,7 +132,7 @@ public class Town : PanelObject
 		avgSatisfactionText.color = avgSatisfaction >= 0.75f ? defaultFontColor : (avgSatisfaction >= 0.5f ? mehColor : badColor);
 
 		// Need Data Chart
-		RectTransform needDataParent = (RectTransform) statPanel.GetChild(6).GetChild(1);
+		RectTransform needDataParent = (RectTransform)statPanel.GetChild(6).GetChild(1);
 		float totalHeight = 0.0f;
 		for(int i = 0; i < needData.Length; ++i)
 		{
@@ -142,8 +147,8 @@ public class Town : PanelObject
 				needEntry.anchoredPosition = new Vector2(needEntry.anchoredPosition.x, -totalHeight);
 				if(satisfactionBarSize <= 0.0f)
 				{
-					satisfactionBarSize = ((RectTransform) needEntry.GetChild(10)).sizeDelta.x;
-					defaultFontColor = needEntry.GetChild(7).GetComponent<TMP_Text>().color;
+					satisfactionBarSize = ((RectTransform)needEntry.GetChild(10)).sizeDelta.x;
+					defaultFontColor = needEntry.GetChild(5).GetComponent<TMP_Text>().color;
 				}
 
 				needEntry.GetChild(0).GetComponent<TMP_Text>().text = needData[i].goodCategory + (needData[i].essential ? "*" : "");
@@ -151,28 +156,29 @@ public class Town : PanelObject
 
 			needEntry.GetChild(1).GetComponent<TMP_Text>().text = populationUpdateResults[0].needBudgets[i] + "G";
 			needEntry.GetChild(2).GetComponent<TMP_Text>().text = populationUpdateResults[populationUpdateResults.Count - 1].needBudgets[i] + "G";
-			Color richSupplyColor = populationUpdateResults[0].saleAmounts[i] >= needData[i].maxBuyAmount ? defaultFontColor : badColor;
-			Color poorSupplyColor = populationUpdateResults[populationUpdateResults.Count - 1].saleAmounts[i] >= needData[i].maxBuyAmount ? defaultFontColor : badColor;
-			TMP_Text richSupplyText = needEntry.GetChild(3).GetComponent<TMP_Text>();
-			richSupplyText.text = populationUpdateResults[0].saleAmounts[i].ToString();
-			richSupplyText.color = richSupplyColor;
-			TMP_Text poorSupplyText = needEntry.GetChild(4).GetComponent<TMP_Text>();
-			poorSupplyText.text = populationUpdateResults[populationUpdateResults.Count - 1].saleAmounts[i].ToString();
-			poorSupplyText.color = poorSupplyColor;
-			TMP_Text richDemandText = needEntry.GetChild(5).GetComponent<TMP_Text>();
-			richDemandText.text = "/" + needData[i].maxBuyAmount;
-			richDemandText.color = richSupplyColor;
-			TMP_Text poorDemandText = needEntry.GetChild(6).GetComponent<TMP_Text>();
-			poorDemandText.text = "/" + needData[i].maxBuyAmount;
-			poorDemandText.color = poorSupplyColor;
-			TMP_Text richQualityText = needEntry.GetChild(7).GetComponent<TMP_Text>();
+
+			int supply = 0;
+			foreach(PopulationController.PopulationGroupUpdateResult populationGroupUpdateResult in populationUpdateResults)
+			{
+				supply += populationGroupUpdateResult.saleAmounts[i];
+			}
+			int demand = Mathf.CeilToInt(needData[i].maxBuyAmount * oldPopulation);
+			Color supplyColor = supply < demand ? badColor : defaultFontColor;
+			TMP_Text supplyText = needEntry.GetChild(3).GetComponent<TMP_Text>();
+			supplyText.text = supply.ToString();
+			supplyText.color = supplyColor;
+			TMP_Text demandText = needEntry.GetChild(4).GetComponent<TMP_Text>();
+			demandText.text = "/" + demand;
+			demandText.color = supplyColor;
+
+			TMP_Text richQualityText = needEntry.GetChild(5).GetComponent<TMP_Text>();
 			richQualityText.text = Mathf.RoundToInt(populationUpdateResults[0].saleQuality[i] * 100.0f) + "%";
 			richQualityText.color = populationUpdateResults[0].saleAmounts[i] >= needData[i].maxBuyAmount ? defaultFontColor : disabledColor;
-			TMP_Text poorQualityText = needEntry.GetChild(8).GetComponent<TMP_Text>();
+			TMP_Text poorQualityText = needEntry.GetChild(6).GetComponent<TMP_Text>();
 			poorQualityText.text = Mathf.RoundToInt(populationUpdateResults[populationUpdateResults.Count - 1].saleQuality[i] * 100.0f) + "%";
 			poorQualityText.color = populationUpdateResults[populationUpdateResults.Count - 1].saleAmounts[i] >= needData[i].maxBuyAmount ? defaultFontColor : disabledColor;
 
-			RectTransform richBar = (RectTransform) needEntry.GetChild(10);
+			RectTransform richBar = (RectTransform)needEntry.GetChild(8);
 			richBar.sizeDelta = new Vector2(satisfactionBarSize * populationUpdateResults[0].needSatisfactions[i], richBar.sizeDelta.y);
 			if(populationUpdateResults[0].needSatisfactions[i] >= 0.75f)
 			{
@@ -187,7 +193,7 @@ public class Town : PanelObject
 				richBar.GetComponent<Image>().color = badColor;
 			}
 
-			RectTransform poorBar = (RectTransform) needEntry.GetChild(11);
+			RectTransform poorBar = (RectTransform)needEntry.GetChild(9);
 			poorBar.sizeDelta = new Vector2(satisfactionBarSize * populationUpdateResults[populationUpdateResults.Count - 1].needSatisfactions[i], poorBar.sizeDelta.y);
 			if(populationUpdateResults[populationUpdateResults.Count - 1].needSatisfactions[i] >= 0.75f)
 			{
@@ -201,9 +207,9 @@ public class Town : PanelObject
 			{
 				poorBar.GetComponent<Image>().color = badColor;
 			}
-			
-			needEntry.GetChild(12).GetComponent<TMP_Text>().text = Mathf.RoundToInt(populationUpdateResults[0].needSatisfactions[i] * 100.0f) + "%";
-			needEntry.GetChild(13).GetComponent<TMP_Text>().text = Mathf.RoundToInt(populationUpdateResults[populationUpdateResults.Count - 1].needSatisfactions[i] * 100.0f) + "%";
+
+			needEntry.GetChild(10).GetComponent<TMP_Text>().text = Mathf.RoundToInt(populationUpdateResults[0].needSatisfactions[i] * 100.0f) + "%";
+			needEntry.GetChild(11).GetComponent<TMP_Text>().text = Mathf.RoundToInt(populationUpdateResults[populationUpdateResults.Count - 1].needSatisfactions[i] * 100.0f) + "%";
 
 			Image backgroundImage = needEntry.GetComponent<Image>();
 			if(i % 2 != 0)
