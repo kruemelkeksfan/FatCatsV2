@@ -40,15 +40,7 @@ public class BuildingController : PanelObject
 			{
 				return 1;
 			}
-		}
 
-		if(lho.underConstruction != rho.underConstruction)
-		{
-			return lho.underConstruction ? 1 : -1;
-		}
-
-		if(lho.owner != rho.owner)
-		{
 			if(lho.owner == null)
 			{
 				return -1;
@@ -57,25 +49,23 @@ public class BuildingController : PanelObject
 			{
 				return 1;
 			}
+
+			return lho.owner.GetPlayerName().CompareTo(rho.owner.GetPlayerName());
 		}
 
-		if(lho.buildingData.buildingName != rho.buildingData.buildingName)
+		if(lho.underConstruction != rho.underConstruction)
 		{
-			if(lho.buildingData.buildingName == "Warehouse")
-			{
-				return -1;
-			}
-			else if(rho.buildingData.buildingName == "Warehouse")
-			{
-				return 1;
-			}
+			return lho.underConstruction ? 1 : -1;
+		}
 
-			return lho.buildingData.buildingName.CompareTo(rho.buildingData.buildingName);
+		if(lho.buildingData.id != rho.buildingData.id)
+		{
+			return lho.buildingData.id - rho.buildingData.id;
 		}
 
 		if(lho.size != rho.size)
 		{
-			return lho.size - rho.size;
+			return rho.size - lho.size;
 		}
 
 		return Mathf.RoundToInt(rho.quality * 100.0f) - Mathf.RoundToInt(lho.quality * 100.0f);
@@ -490,11 +480,11 @@ public class BuildingController : PanelObject
 					}
 					materialInfo.GetComponent<TMP_Text>().text = storedMaterialSum + "/" + necessaryMaterialSum;
 					materialInfo.GetChild(0).gameObject.SetActive(!constructionSite.enoughMaterial);
-					materialInfo.gameObject.SetActive(true);
 				}
 				else
 				{
-					materialInfo.gameObject.SetActive(false);
+					materialInfo.GetComponent<TMP_Text>().text = "none";
+					materialInfo.GetChild(0).gameObject.SetActive(false);
 				}
 
 				if(building.GetCurrentWorkerCount() > 0)

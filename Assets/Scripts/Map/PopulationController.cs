@@ -169,7 +169,7 @@ public class PopulationController : MonoBehaviour
 		// 4.a The most straightforward way to query for data
 		// is using the Table method. This can take predicates
 		// for constraining via WHERE clauses and/or adding ORDER BY clauses
-		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Income);
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Income).ThenByDescending<int>(populationGroup => populationGroup.Income);
 		foreach(PopulationGroup populationGroup in populationQuery)
 		{
 			if(populationGroup.Count <= 0)

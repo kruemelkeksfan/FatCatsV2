@@ -6,6 +6,7 @@ using UnityEngine;
 [Serializable]
 public struct BuildingData
 {
+	public int id;
 	public string buildingName;
 	public string description;
 	public string[] products;
