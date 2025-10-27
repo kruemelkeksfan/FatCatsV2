@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System.Collections;
+using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
 using System.Threading;
@@ -15,11 +16,14 @@ public class InfoController : MonoBehaviour
 	[SerializeField] private Transform confirmationPanel = null;
 	[SerializeField] private TMP_Text confirmationPanelText = null;
 	[SerializeField] private Button confirmationPanelConfirmButton = null;
-	[SerializeField] private AudioController audioController = null;
 	[SerializeField] private int maxMessageCount = 10;
+	[SerializeField] private float messageLogBlinkInterval = 0.1f;
+	[SerializeField] private int messageLogBlinkCount = 2;
 	private LinkedList<string> messages = null;
 	private StringBuilder textBuilder = null;
 	private TimeController timeController = null;
+	private AudioController audioController = null;
+	private WaitForSecondsRealtime waitForMessageLogBlink = null;
 
 	public static InfoController GetInstance()
 	{
@@ -33,12 +37,15 @@ public class InfoController : MonoBehaviour
 		messages = new LinkedList<string>();
 		textBuilder = new StringBuilder();
 
+		waitForMessageLogBlink = new WaitForSecondsRealtime(messageLogBlinkInterval);
+
 		instance = this;
 	}
 
 	private void Start()
 	{
 		timeController = TimeController.GetInstance();
+		audioController = AudioController.GetInstance();
 	}
 
 	public void ActivateConfirmationPanel(string text, UnityEngine.Events.UnityAction confirmationAction)
@@ -67,8 +74,9 @@ public class InfoController : MonoBehaviour
 		{
 			messages.AddLast("<color=yellow>[" + timeController.BuildTimeString() + "]\n" + newMessage + "</color>\n");
 
-			// TODO: Add AudioController and SFX
-			// audioController.PlayAudio(warningAudio, null);
+			audioController.PlayAudio(warningAudio);
+			StopAllCoroutines();
+			StartCoroutine(HighlightMessageLog());
 		}
 		else
 		{
@@ -101,6 +109,15 @@ public class InfoController : MonoBehaviour
 		if(pause)
 		{
 			timeController.SetTimeScale(0);
+		}
+	}
+
+	public IEnumerator HighlightMessageLog()
+	{
+		for(int i = 0; i < messageLogBlinkCount * 2; ++i)
+		{
+			messageLog.gameObject.SetActive(!messageLog.gameObject.activeSelf);
+			yield return waitForMessageLogBlink;
 		}
 	}
 }

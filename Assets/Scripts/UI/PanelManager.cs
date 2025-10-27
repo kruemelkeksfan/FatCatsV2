@@ -16,12 +16,14 @@ public class PanelManager : MonoBehaviour
 	[SerializeField] private int maxTiledPanelCount = 8;
 	[SerializeField] private int maxPanelCount = 24;
 	[SerializeField] private RectTransform characterPanel = null;
+	[SerializeField] private float panelHeaderBlinkInterval = 0.1f;
 	private Dictionary<PanelObjectType, RectTransform> panelPrefabDictionary = null;
 	private new Camera camera = null;
 	private EventSystem eventSystem = null;
 	private RectTransform[] openPanels = null;
 	private PanelObject[] openPanelObjects = null;
 	private HashSet<int> queuedPanelUpdates = null;
+	private WaitForSecondsRealtime waitForPanelHeaderBlink = null;
 
 	public static PanelManager GetInstance()
 	{
@@ -46,6 +48,8 @@ public class PanelManager : MonoBehaviour
 		}
 
 		queuedPanelUpdates = new HashSet<int>();
+
+		waitForPanelHeaderBlink = new WaitForSecondsRealtime(panelHeaderBlinkInterval);
 
 		instance = this;
 	}
@@ -175,7 +179,7 @@ public class PanelManager : MonoBehaviour
 	{
 		Image headingBackground = panel.GetChild(0).GetComponent<Image>();
 		headingBackground.enabled = false;
-		yield return new WaitForSecondsRealtime(0.1f);
+		yield return waitForPanelHeaderBlink;
 		headingBackground.enabled = true;
 	}
 

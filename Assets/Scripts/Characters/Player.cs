@@ -479,7 +479,10 @@ public class Player : MonoBehaviour
 		if(path != null && CalculateMovementCostFactor() < movementCostFactor)
 		{
 			// Start over Movement to apply lower Movement Cost
-			ResetAction(false, false, true);
+			ResetAction(false, false, false);
+			currentAction = new Action("Ready to move", 0.0, 0.0, false, characterActionText, delegate
+			{
+			});
 		}
 	}
 

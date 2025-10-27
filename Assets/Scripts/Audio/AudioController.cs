@@ -26,10 +26,9 @@ public class AudioController : MonoBehaviour
 	[SerializeField] private Slider sfxSlider = null;
 	[SerializeField] private InputField sfxInputField = null;
 	[SerializeField] private string creditUrl = "https://freepd.com/artists.php";
-	private TimeController timeController = null;
 	private HashSet<AudioClip> oneShotAudios = null;
 	private Dictionary<AudioClip, AudioData> loopedAudios = null;
-	private GameObject localPlayerMainObject = null;
+	private WaitForSecondsRealtime waitForAudioUpdate = null;
 
 	public static AudioController GetInstance()
 	{
@@ -38,6 +37,8 @@ public class AudioController : MonoBehaviour
 
 	private void Awake()
 	{
+		waitForAudioUpdate = new WaitForSecondsRealtime(audioUpdateInterval);
+
 		instance = this;
 	}
 
@@ -46,20 +47,25 @@ public class AudioController : MonoBehaviour
 		oneShotAudios = new HashSet<AudioClip>();
 		loopedAudios = new Dictionary<AudioClip, AudioData>();
 
-		float volume = musicSource.volume;
-		musicSlider.value = volume;
-		musicInputField.text = volume.ToString("F2");
-		volume = sfxSource.volume;
-		sfxSlider.value = volume;
-		sfxInputField.text = volume.ToString("F2");
+		if(musicSlider != null && musicInputField != null)
+		{
+			float volume = musicSource.volume;
+			musicSlider.value = volume;
+			musicInputField.text = volume.ToString("F2");
+		}
+		if(sfxSlider != null && sfxInputField != null)
+		{
+			float volume = sfxSource.volume;
+			sfxSlider.value = volume;
+			sfxInputField.text = volume.ToString("F2");
+		}
 
-		timeController = TimeController.GetInstance();
-		timeController.StartCoroutine(AudioUpdate(), true);
+		StartCoroutine(AudioUpdate());
 	}
 
-	private IEnumerator<float> AudioUpdate()
+	public IEnumerator AudioUpdate()
 	{
-		int nextTitle = Random.Range(0, music.Length - 1);
+		int currentTitle = -1;
 		double pauseUntil = 0.0;
 		while(true)
 		{
@@ -67,20 +73,20 @@ public class AudioController : MonoBehaviour
 			double time = Time.realtimeSinceStartupAsDouble;
 
 			// Music
-			if(time > pauseUntil)
+			if(music.Length > 0 && time > pauseUntil)
 			{
 				// Do not play the same Title twice in a Row
-				int currentTitle = nextTitle;
-				while(nextTitle == currentTitle)
+				int nextTitle;
+				do
 				{
 					nextTitle = Random.Range(0, music.Length - 1);
-				}
+				} while(nextTitle == currentTitle);
 
 				// Random Pause after Title
-				pauseUntil = time + music[currentTitle].length + Random.Range(0.0f, maximumPauseDuration);
+				pauseUntil = time + music[nextTitle].length + Random.Range(0.0f, maximumPauseDuration);
 
 				// Play Title
-				musicSource.PlayOneShot(music[currentTitle]);
+				musicSource.PlayOneShot(music[nextTitle]);
 			}
 
 			// SFX
@@ -96,75 +102,65 @@ public class AudioController : MonoBehaviour
 			}
 
 			// Wait
-			yield return audioUpdateInterval;
+			yield return waitForAudioUpdate;
 		}
 	}
 
-	public void PlayAudio(AudioClip audio, GameObject triggeringObject)
+	public void PlayAudio(AudioClip audio)
 	{
-		if(triggeringObject == null || triggeringObject == localPlayerMainObject)
+		// Play every Audio at most once per Audio Frame
+		if(!oneShotAudios.Contains(audio))
 		{
-			// Play every Audio at most once per Audio Frame
-			if(!oneShotAudios.Contains(audio))
-			{
-				sfxSource.PlayOneShot(audio);
-				oneShotAudios.Add(audio);
-			}
+			sfxSource.PlayOneShot(audio);
+			oneShotAudios.Add(audio);
 		}
 	}
 
-	public void LoopAudioStart(AudioClip audio, GameObject triggeringObject)
+	public void LoopAudioStart(AudioClip audio)
 	{
-		if(triggeringObject == null || triggeringObject == localPlayerMainObject)
+		AudioData audioData;
+		if(loopedAudios.TryGetValue(audio, out audioData))
 		{
-			AudioData audioData;
-			if(loopedAudios.TryGetValue(audio, out audioData))
-			{
-				++audioData.playCounter;
-			}
-			else
-			{
-				audioData = new AudioData();
-				audioData.nextPlaytime = Time.realtimeSinceStartupAsDouble;
-				audioData.loopTime = audio.length * audioLoopOverlapFactor;
-				audioData.playCounter = 1;
-				loopedAudios.Add(audio, audioData);
-			}
+			++audioData.playCounter;
+		}
+		else
+		{
+			audioData = new AudioData();
+			audioData.nextPlaytime = Time.realtimeSinceStartupAsDouble;
+			audioData.loopTime = audio.length * audioLoopOverlapFactor;
+			audioData.playCounter = 1;
+			loopedAudios.Add(audio, audioData);
 		}
 	}
 
-	public void LoopAudioStop(AudioClip audio, GameObject triggeringObject)
+	public void LoopAudioStop(AudioClip audio)
 	{
-		if(triggeringObject == null || triggeringObject == localPlayerMainObject)
+		AudioData audioData;
+		if(loopedAudios.ContainsKey(audio))
 		{
-			AudioData audioData;
+			audioData = loopedAudios[audio];
+		}
+		else
+		{
+			Debug.LogWarning(audio + " has already been stopped when LoopAudioStop() was called in AudioController!");
+			return;
+		}
 
-			try
-			{
-				audioData = loopedAudios[audio];
-			}
-			catch(KeyNotFoundException)
-			{
-				Debug.LogWarning(audio + " has already been stopped when LoopAudioStop() was called in AudioController!");
-				return;
-			}
+		--audioData.playCounter;
+		if(audioData.playCounter <= 0)
+		{
+			loopedAudios.Remove(audio);
 
-			--audioData.playCounter;
-			if(audioData.playCounter <= 0)
+			if(audioData.playCounter < 0)
 			{
-				loopedAudios.Remove(audio);
-
-				if(audioData.playCounter < 0)
-				{
-					Debug.LogWarning("Looped Audio " + audio + " was stopped " + (-audioData.playCounter) + " Times more often than it was started!");
-				}
+				Debug.LogWarning("Looped Audio " + audio + " was stopped " + (-audioData.playCounter) + " Times more often than it was started!");
 			}
 		}
 	}
 
 	public void PlayClickAudio()
 	{
-		PlayAudio(clickAudio, null);
+		PlayAudio(clickAudio);
 	}
 
 	public void MusicSliderChanged()

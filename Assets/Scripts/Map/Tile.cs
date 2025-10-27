@@ -295,6 +295,11 @@ public class Tile : PanelObject
 	{
 		if(movementProgressMarker != null)
 		{
+			if(movementDirection.magnitude * progress * 0.1f > 1000.0f)
+			{
+				Debug.LogWarning("Invalid Movement Direction: " + movementDirection.magnitude + " " + progress);
+			}
+
 			movementProgressMarker.localScale = new Vector3(
 				movementProgressMarker.localScale.x,
 				movementProgressMarker.localScale.y,
