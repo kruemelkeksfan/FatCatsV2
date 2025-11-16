@@ -311,9 +311,12 @@ public class Inventory : PanelObject
 			RectTransform inventoryEntry = GameObject.Instantiate<RectTransform>(inventoryEntryPrefab, inventoryContentParent);
 			inventoryEntry.anchoredPosition = new Vector2(inventoryEntry.anchoredPosition.x, -totalHeight);
 
+			// Call Method instead of accessing Dictionary directly to account for reserved Goods
+			int inventoryAmountWithoutReserved = GetInventoryAmount(good);
+
 			inventoryEntry.GetChild(0).GetComponent<TMP_Text>().text = good.goodData.goodName;
 			inventoryEntry.GetChild(1).GetComponent<TMP_Text>().text = Mathf.RoundToInt(good.perceivedQuality * 100.0f) + "%";
-			inventoryEntry.GetChild(2).GetComponent<TMP_Text>().text = inventoryItems[good].ToString();
+			inventoryEntry.GetChild(2).GetComponent<TMP_Text>().text = inventoryAmountWithoutReserved + "/" + inventoryItems[good];
 			inventoryEntry.GetChild(3).GetComponent<TMP_Text>().text = (good.goodData.bulk * inventoryItems[good]).ToString();
 
 			TMP_InputField amountField = inventoryEntry.GetChild(4).GetComponent<TMP_InputField>();
@@ -322,7 +325,7 @@ public class Inventory : PanelObject
 			allButton.onClick.RemoveAllListeners();
 			allButton.onClick.AddListener(delegate
 			{
-				amountField.text = inventoryItems[good].ToString();
+				amountField.text = inventoryAmountWithoutReserved.ToString();
 			});
 
 			if(alternativeInventory != null)
@@ -331,7 +334,7 @@ public class Inventory : PanelObject
 				transferButton.onClick.RemoveAllListeners();
 				transferButton.onClick.AddListener(delegate
 				{
-					int amount = Mathf.Clamp(Int32.Parse(amountField.text), 0, inventoryItems[good]);
+					int amount = Mathf.Clamp(Int32.Parse(amountField.text), 0, inventoryAmountWithoutReserved);
 					if(WithdrawGood(good, amount, true))
 					{
 						alternativeInventory.DepositGood(good, amount);
@@ -348,7 +351,7 @@ public class Inventory : PanelObject
 			dumpButton.onClick.RemoveAllListeners();
 			dumpButton.onClick.AddListener(delegate
 			{
-				WithdrawGood(good, Mathf.Clamp(Int32.Parse(amountField.text), 0, inventoryItems[good]), true);
+				WithdrawGood(good, Mathf.Clamp(Int32.Parse(amountField.text), 0, inventoryAmountWithoutReserved), true);
 			});
 
 			if(i % 2 == 0)
@@ -670,6 +673,10 @@ public class Inventory : PanelObject
 					Debug.LogWarning("Unable to destroy " + good.goodData.goodName + " from " + gameObject + " for Decay!");
 					return false;
 				}
+			}
+			if(good.perceivedQuality <= 0.01f)
+			{
+				good.perceivedQuality = 0.01f;
 			}
 
 			return true;

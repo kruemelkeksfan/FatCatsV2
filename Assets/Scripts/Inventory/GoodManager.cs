@@ -15,6 +15,7 @@ public struct GoodData
 	public int bulk;
 	[Tooltip("How perishable this Good is.")]
 	public float decayPerDay;
+	public float perceivedQualityFactor;
 	public string[] statNames;
 	public int[] statValues;
 }
@@ -31,7 +32,7 @@ public class Good
 	{
 		this.goodData = good;
 		this.quality = quality;
-		this.perceivedQuality = perceivedQuality;
+		this.perceivedQuality = perceivedQuality * good.perceivedQualityFactor;
 		this.owner = owner;
 	}
 }

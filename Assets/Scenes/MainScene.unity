@@ -398,6 +398,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 5
     decayPerDay: 0.05
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Tribalwear
@@ -405,6 +406,7 @@ MonoBehaviour:
     equipmentCategory: 2
     bulk: 2
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Loincloths
@@ -412,6 +414,7 @@ MonoBehaviour:
     equipmentCategory: 3
     bulk: 2
     decayPerDay: 0
+    perceivedQualityFactor: 0.5
     statNames: []
     statValues: 
   - goodName: Backpacks
@@ -419,6 +422,7 @@ MonoBehaviour:
     equipmentCategory: 7
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Axes
@@ -426,6 +430,7 @@ MonoBehaviour:
     equipmentCategory: 11
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Pickaxes
@@ -433,6 +438,7 @@ MonoBehaviour:
     equipmentCategory: 12
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Herbs
@@ -440,6 +446,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 1
     decayPerDay: 0.02
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Flax
@@ -447,6 +454,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 1
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Cloth
@@ -454,6 +462,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 1
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Firewood
@@ -461,6 +470,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 0.5
     statNames: []
     statValues: 
   - goodName: Twigs
@@ -468,6 +478,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 0.25
     statNames: []
     statValues: 
   - goodName: Wood
@@ -475,6 +486,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 20
     decayPerDay: 0
+    perceivedQualityFactor: 0.75
     statNames: []
     statValues: 
   - goodName: Stone
@@ -482,6 +494,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 10
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Copper Ore
@@ -489,6 +502,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 10
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Iron Ore
@@ -496,6 +510,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 10
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Gold Ore
@@ -503,6 +518,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
   - goodName: Coal
@@ -510,6 +526,7 @@ MonoBehaviour:
     equipmentCategory: 0
     bulk: 5
     decayPerDay: 0
+    perceivedQualityFactor: 1
     statNames: []
     statValues: 
 --- !u!4 &106176109

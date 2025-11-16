@@ -245,6 +245,7 @@ public class Market : PanelObject
 			}
 
 			panelManager.QueuePanelUpdate(this);
+			panelManager.QueuePanelUpdate(good.owner);
 
 			return true;
 		}
