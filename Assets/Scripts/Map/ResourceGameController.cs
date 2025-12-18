@@ -83,7 +83,7 @@ public class ResourceGameController : MonoBehaviour
 						// Collection Animation
 						if(resourceIcon.localScale.x < collectionAnimationMaxWidth)
 						{
-							resourceIcon.localScale *= collectionAnimationSizeIncrease;
+							resourceIcon.localScale *= 1.0f + (collectionAnimationSizeIncrease * Time.deltaTime);
 						}
 						else
 						{

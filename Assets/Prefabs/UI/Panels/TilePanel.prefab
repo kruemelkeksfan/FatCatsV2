@@ -133,7 +133,7 @@ MonoBehaviour:
   resourceSpawnChance: 0.02
   resourceSpeed: 5
   paddleSpeed: 5
-  collectionAnimationSizeIncrease: 1.01
+  collectionAnimationSizeIncrease: 8
   collectionAnimationMaxWidth: 2
   gameArea: {fileID: 8432314819455342459}
   paddle: {fileID: 5373348069238171202}
