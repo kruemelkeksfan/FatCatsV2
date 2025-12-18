@@ -22,6 +22,8 @@ public struct Resource
 	public EquipmentCategory tool;
 	[Tooltip("How much of this Resource can be harvested per Hour, disregarding Light, Weather and Skill.")]
 	public float baseYieldPerHour;
+	[Tooltip("Icon for the Resource Collection Minigame.")]
+	public Image resourceIcon;
 }
 
 public class Tile : PanelObject
@@ -47,7 +49,7 @@ public class Tile : PanelObject
 	private Tile parentTile = null;
 	private Town town = null;
 	private bool forest = true;
-	private Dictionary<string, int> resourceDictionary = null;
+	private Dictionary<string, int> resourceAmounts = null;
 	private Resource woodReference = new Resource();
 	private new Transform transform = null;
 	private Transform movementPathMarker = null;
@@ -57,6 +59,7 @@ public class Tile : PanelObject
 	private FogOfWar fogOfWar = FogOfWar.Visible;
 	private Vector3 initialResourceMarkerSize = Vector3.one;
 	private string currentResourceFilter = string.Empty;
+	private ResourceGameController resourceGameController = null;
 
 	private void Awake()
 	{
@@ -93,12 +96,12 @@ public class Tile : PanelObject
 
 	public void InitResources(float[] resourceAmountFactors)
 	{
-		resourceDictionary = new Dictionary<string, int>(resourceTypes.Length);
+		resourceAmounts = new Dictionary<string, int>(resourceTypes.Length);
 		for(int i = 0; i < resourceTypes.Length; ++i)
 		{
-			resourceTypes[i].localMaxAmount = Mathf.FloorToInt(resourceAmountFactors[i] * resourceTypes[i].maxAmount);
+			resourceTypes[i].localMaxAmount = Mathf.FloorToInt(resourceTypes[i].maxAmount * resourceAmountFactors[i]);
 			resourceTypes[i].baseYieldPerHour *= ((float)resourceTypes[i].localMaxAmount) / ((float)resourceTypes[i].maxAmount);
-			resourceDictionary.Add(resourceTypes[i].goodName, resourceTypes[i].localMaxAmount);
+			resourceAmounts.Add(resourceTypes[i].goodName, resourceTypes[i].localMaxAmount);
 
 			if(i == 0)
 			{
@@ -111,13 +114,13 @@ public class Tile : PanelObject
 
 	public void InitEncounterMapResources(int[] resourceAmounts, float? exitMarkerAngle)
 	{
-		resourceDictionary = new Dictionary<string, int>(resourceTypes.Length);
+		this.resourceAmounts = new Dictionary<string, int>(resourceTypes.Length);
 		for(int i = 0; i < resourceTypes.Length; ++i)
 		{
 			resourceTypes[i].maxAmount = resourceTypes[i].maxDepositSize;
 			resourceTypes[i].localMaxAmount = resourceAmounts[i];
 			resourceTypes[i].baseYieldPerHour *= ((float)resourceTypes[i].localMaxAmount) / ((float)resourceTypes[i].maxAmount);
-			resourceDictionary.Add(resourceTypes[i].goodName, resourceTypes[i].localMaxAmount);
+			this.resourceAmounts.Add(resourceTypes[i].goodName, resourceTypes[i].localMaxAmount);
 
 			if(i == 0)
 			{
@@ -147,14 +150,14 @@ public class Tile : PanelObject
 
 			if(resource.forestDependent)
 			{
-				resourceDictionary[resource.goodName] = Mathf.Clamp(
-					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary["Wood"] / (float)woodReference.localMaxAmount)),
+				resourceAmounts[resource.goodName] = Mathf.Clamp(
+					resourceAmounts[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceAmounts["Wood"] / (float)woodReference.localMaxAmount)),
 					0, resource.localMaxAmount);
 			}
 			else
 			{
-				resourceDictionary[resource.goodName] = Mathf.Clamp(
-					resourceDictionary[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceDictionary[resource.goodName] / (float)resource.localMaxAmount)),
+				resourceAmounts[resource.goodName] = Mathf.Clamp(
+					resourceAmounts[resource.goodName] + Mathf.RoundToInt(resource.maxGrowthAmount * ((float)resourceAmounts[resource.goodName] / (float)resource.localMaxAmount)),
 					0, resource.localMaxAmount);
 			}
 		}
@@ -186,19 +189,23 @@ public class Tile : PanelObject
 			}
 
 			resourceEntry.GetChild(0).GetComponent<TMP_Text>().text = resource.goodName;
-			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceDictionary[resource.goodName].ToString();
+			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceAmounts[resource.goodName].ToString();
 			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resource.localMaxAmount;
-			Player player = null;
-			if(parentTile != null && (player = gameObject.GetComponentInChildren<Player>()) != null) // TODO: After Multiplayer Implementation check, if this is the local Player
+			Player player = gameObject.GetComponentInChildren<Player>(); // TODO: After Multiplayer Implementation check, if this is the local Player
+			if(player != null)
 			{
 				Button collectButton = resourceEntry.GetChild(3).GetComponent<Button>();
 				collectButton.gameObject.SetActive(true);
 
-				collectButton.onClick.RemoveAllListeners();
+				resourceGameController = panel.GetChild(2).GetComponent<ResourceGameController>();
 				Resource localResource = resource;
+				Inventory playerInventory = player.GetInventory();
+				collectButton.onClick.RemoveAllListeners();
 				collectButton.onClick.AddListener(delegate
 				{
-					player.CollectResources(localResource, this, player.GetInventory());
+					player.CollectResources(localResource, this, playerInventory);
+					resourceGameController.StartGame(resourceTypes, resourceAmounts, localResource.goodName, this, playerInventory);
+					panelManager.QueuePanelUpdate(this);
 				});
 			}
 			else
@@ -331,27 +338,28 @@ public class Tile : PanelObject
 		// TODO: Save harvested Resources, so that Resources do not magically respawn upon leaving and reentering the Encounter Map; saved Harvests can be reset when no Player was on the Tile for some Days
 
 		int harvestedAmount = amount;
-		if(resourceDictionary[resource] >= amount)
+		if(resourceAmounts[resource] >= amount)
 		{
-			resourceDictionary[resource] -= amount;
+			resourceAmounts[resource] -= amount;
 		}
 		else
 		{
-			harvestedAmount = resourceDictionary[resource];
-			resourceDictionary[resource] = 0;
+			harvestedAmount = resourceAmounts[resource];
+			resourceAmounts[resource] = 0;
 		}
 
 		if(parentTile != null)
 		{
-			parentTile.resourceDictionary[resource] -= harvestedAmount;
-			if(parentTile.resourceDictionary[resource] < 0)
+			parentTile.resourceAmounts[resource] -= harvestedAmount;
+			if(parentTile.resourceAmounts[resource] < 0)
 			{
-				parentTile.resourceDictionary[resource] = 0;
+				parentTile.resourceAmounts[resource] = 0;
 			}
 		}
 
 		panelManager.QueuePanelUpdate(this);
 
+		resourceGameController?.UpdateResourceProbabilities(resourceAmounts);
 		UpdateResourceDisplay();
 
 		return harvestedAmount;
@@ -372,7 +380,7 @@ public class Tile : PanelObject
 			for(int i = 0; i < resourceParent.childCount - 1; ++i)
 			{
 				Transform resourceGroup = resourceParent.GetChild(i + 1);
-				int nodeCount = Mathf.CeilToInt(((float)resourceDictionary[resourceTypes[i].goodName] / (float)resourceTypes[i].maxAmount) * resourceGroup.childCount);
+				int nodeCount = Mathf.CeilToInt(((float)resourceAmounts[resourceTypes[i].goodName] / (float)resourceTypes[i].maxAmount) * resourceGroup.childCount);
 				for(int j = 0; j < resourceGroup.childCount; ++j)
 				{
 					// Set the right Amount of Nodes active and disable the Rest
@@ -381,7 +389,7 @@ public class Tile : PanelObject
 
 				if(resourceTypes[i].goodName == currentResourceFilter)
 				{
-					resourceMarkerSize = (float)resourceDictionary[resourceTypes[i].goodName] / (float)resourceTypes[i].maxAmount;
+					resourceMarkerSize = (float)resourceAmounts[resourceTypes[i].goodName] / (float)resourceTypes[i].maxAmount;
 				}
 			}
 
@@ -396,6 +404,11 @@ public class Tile : PanelObject
 				resourceParent.GetChild(0).gameObject.SetActive(false);
 			}
 		}
+	}
+
+	public bool IsEncounterTile()
+	{
+		return parentTile != null;
 	}
 
 	public bool IsForest()
@@ -430,7 +443,7 @@ public class Tile : PanelObject
 
 	public int GetResourceAmount(string resource)
 	{
-		return resourceDictionary[resource];
+		return resourceAmounts[resource];
 	}
 
 	public FogOfWar GetFogOfWar()

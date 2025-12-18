@@ -559,6 +559,7 @@ MonoBehaviour:
     forestDependent: 1
     tool: 11
     baseYieldPerHour: 1
+    resourceIcon: {fileID: 666665469559712257, guid: 8da9f5ed638b30f44a3a5c048f80fab3, type: 3}
   - goodName: Fruits
     maxAmount: 50000
     localMaxAmount: 0
@@ -567,6 +568,7 @@ MonoBehaviour:
     forestDependent: 1
     tool: 0
     baseYieldPerHour: 5
+    resourceIcon: {fileID: 4701233775582205356, guid: a4fd8493b06a3924eb6f6dd854cf527a, type: 3}
   - goodName: Twigs
     maxAmount: 3000000
     localMaxAmount: 0
@@ -575,6 +577,7 @@ MonoBehaviour:
     forestDependent: 1
     tool: 0
     baseYieldPerHour: 2
+    resourceIcon: {fileID: 4274477491653985983, guid: b6e5f083c526d944c9b5f608b92cb600, type: 3}
   - goodName: Herbs
     maxAmount: 5000
     localMaxAmount: 0
@@ -583,6 +586,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 0
     baseYieldPerHour: 5
+    resourceIcon: {fileID: 6227678291835248682, guid: b02831da37a4ab34da0b51ce9744e862, type: 3}
   - goodName: Flax
     maxAmount: 10000
     localMaxAmount: 0
@@ -591,6 +595,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 0
     baseYieldPerHour: 5
+    resourceIcon: {fileID: 2788660177363479536, guid: 1fcf7510b62c92649b47ac15b133e4b7, type: 3}
   - goodName: Stone
     maxAmount: 10000000
     localMaxAmount: 0
@@ -599,6 +604,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 12
     baseYieldPerHour: 5
+    resourceIcon: {fileID: 2012534263262880064, guid: 80cdfceccf89c63408fbc5330baf39fd, type: 3}
   - goodName: Copper Ore
     maxAmount: 100000
     localMaxAmount: 0
@@ -607,6 +613,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 12
     baseYieldPerHour: 2
+    resourceIcon: {fileID: 8857992055909012145, guid: 302d8269b0d02444bbded681e93c7cc1, type: 3}
   - goodName: Iron Ore
     maxAmount: 100000
     localMaxAmount: 0
@@ -615,6 +622,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 12
     baseYieldPerHour: 2
+    resourceIcon: {fileID: 1977057757732637746, guid: 309b6b4698548c44ab976dd39e53a7c6, type: 3}
   - goodName: Gold Ore
     maxAmount: 10000
     localMaxAmount: 0
@@ -623,6 +631,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 12
     baseYieldPerHour: 1
+    resourceIcon: {fileID: 230118699677981465, guid: a37c1259745566a4182e49ac5ba8a47e, type: 3}
   - goodName: Coal
     maxAmount: 200000
     localMaxAmount: 0
@@ -631,6 +640,7 @@ MonoBehaviour:
     forestDependent: 0
     tool: 12
     baseYieldPerHour: 5
+    resourceIcon: {fileID: 3982616661805767955, guid: 68fa41f1eda87194f98e62795cc1f7f6, type: 3}
   resourceEntryPrefab: {fileID: 7022509754344602647, guid: 613a7fc77f9655048bfd975de2e79bb2, type: 3}
   exitMarkerPrefab: {fileID: 0}
   movementPathMarkerPrefab: {fileID: 7680133081360683367, guid: d1ccb2bd232d6c848a7bf34a675590bb, type: 3}

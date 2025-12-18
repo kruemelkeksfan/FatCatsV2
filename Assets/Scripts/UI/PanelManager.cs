@@ -153,6 +153,17 @@ public class PanelManager : MonoBehaviour
 		}
 	}
 
+	public void CloseTilePanels()
+	{
+		for(int i = 0; i < openPanels.Length; ++i)
+		{
+			if(openPanels[i] != null && openPanelObjects[i] != null && openPanelObjects[i] is Tile)
+			{
+				ClosePanel(openPanels[i]);
+			}
+		}
+	}
+
 	public void QueuePanelUpdate(PanelObject panelObject)
 	{
 		for(int i = 0; i < openPanelObjects.Length; ++i)

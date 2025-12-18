@@ -41,6 +41,7 @@ public class EncounterMapManager : MonoBehaviour
 	[SerializeField] private int maxTileReserve = 200;
 	[SerializeField] private int tilesPerUpdate = 10;
 	[SerializeField] private float sightlineEyeHeight = 5.5f;
+	private PanelManager panelManager = null;
 	private InfoController infoController = null;
 	private TilePool tilePool = null;
 	private List<EncounterMap> encounterMaps = null;
@@ -53,12 +54,16 @@ public class EncounterMapManager : MonoBehaviour
 
 	private void Awake()
 	{
-		instance = this;
-
-		infoController = InfoController.GetInstance();
-
 		tilePool = new TilePool(minTileReserve, maxTileReserve, tilesPerUpdate, terrainPrefabs[0]);
 		encounterMaps = new List<EncounterMap>(maxEncounterMapCount);
+
+		instance = this;
+	}
+
+	private void Start()
+	{
+		panelManager = PanelManager.GetInstance();
+		infoController = InfoController.GetInstance();
 
 		map = MapManager.GetInstance().GetMap();
 
@@ -135,6 +140,8 @@ public class EncounterMapManager : MonoBehaviour
 
 				encounterMaps[i] = new EncounterMap(i, players, terrainParent, encounterMap.mapModel, encounterMap.tiles, tileSize, sightlineEyeHeight);
 
+				panelManager.CloseTilePanels();
+
 				foreach(Player player in players)
 				{
 					// TODO: Prevent multiple Units from occupying the same Tile
@@ -158,6 +165,7 @@ public class EncounterMapManager : MonoBehaviour
 		// TODO: Allow Exit only if Player is at Map Edge and escape to next Tile
 		// TODO: Alternatively allow Exit to Tile Center anywhere if out of Combat
 
+		panelManager.CloseTilePanels();
 		player.SetPosition(mapTile, map);
 		
 		encounterMap.players.Remove(player);
@@ -171,6 +179,16 @@ public class EncounterMapManager : MonoBehaviour
 			encounterMaps[encounterMap.encounterMapIndex] = null;
 			GameObject.Destroy(encounterMap.terrainParent.gameObject);
 		}
+	}
+
+	public int GetMapWidth()
+	{
+		return mapWidth;
+	}
+
+	public int GetMapHeight()
+	{
+		return mapHeight;
 	}
 
 	public float GetTileSize()

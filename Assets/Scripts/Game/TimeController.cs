@@ -214,9 +214,9 @@ public class TimeController : MonoBehaviour
 		dailyUpdateListeners[(int)prio].Enqueue(listener);
 	}
 
-	public bool IsScaled()
+	public int GetCurrentTimeScaleIndex()
 	{
-		return currentTimeScaleIndex != 0;
+		return currentTimeScaleIndex;
 	}
 
 	public float GetTimeScale()

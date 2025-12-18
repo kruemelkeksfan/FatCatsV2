@@ -405,6 +405,8 @@ public class Player : MonoBehaviour
 				timeController.SetTimeScale(0);
 			}
 		}
+
+		ResourceGameController.StopCurrentResourceGame();
 	}
 
 	public void CollectResources(Resource resource, Tile tile, Inventory collector)
@@ -543,6 +545,11 @@ public class Player : MonoBehaviour
 	public Vector2 GetEncounterPosition()
 	{
 		return encounterPosition;
+	}
+
+	public string GetCurrentActionName()
+	{
+		return currentAction.actionName;
 	}
 
 	public void SetPosition(Tile tile, Map currentMap = null)
