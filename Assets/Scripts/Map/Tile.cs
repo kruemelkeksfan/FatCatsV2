@@ -192,12 +192,10 @@ public class Tile : PanelObject
 			resourceEntry.GetChild(1).GetComponent<TMP_Text>().text = resourceAmounts[resource.goodName].ToString();
 			resourceEntry.GetChild(2).GetComponent<TMP_Text>().text = "/" + resource.localMaxAmount;
 			Player player = gameObject.GetComponentInChildren<Player>(); // TODO: After Multiplayer Implementation check, if this is the local Player
+			Button collectButton = resourceEntry.GetChild(3).GetComponent<Button>();
+			resourceGameController = panel.GetChild(2).GetComponent<ResourceGameController>();
 			if(player != null)
 			{
-				Button collectButton = resourceEntry.GetChild(3).GetComponent<Button>();
-				collectButton.gameObject.SetActive(true);
-
-				resourceGameController = panel.GetChild(2).GetComponent<ResourceGameController>();
 				Resource localResource = resource;
 				Inventory playerInventory = player.GetInventory();
 				collectButton.onClick.RemoveAllListeners();
@@ -207,10 +205,14 @@ public class Tile : PanelObject
 					resourceGameController.StartGame(resourceTypes, resourceAmounts, localResource.goodName, this, playerInventory);
 					panelManager.QueuePanelUpdate(this);
 				});
+
+				collectButton.gameObject.SetActive(true);
+				resourceGameController.gameObject.SetActive(true);
 			}
 			else
 			{
-				resourceEntry.GetChild(3).gameObject.SetActive(false);
+				collectButton.gameObject.SetActive(false);
+				resourceGameController.gameObject.SetActive(false);
 			}
 			// resourceEntry.GetChild(4).GetComponent<Button>().onClick.AddListener(); // TODO: Add ResourceInfoPanel
 
