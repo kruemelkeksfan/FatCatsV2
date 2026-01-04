@@ -76,6 +76,7 @@ public class InfoController : MonoBehaviour
 
 			audioController.PlayAudio(warningAudio);
 			StopAllCoroutines();
+			messageLog.gameObject.SetActive(true); // Set active again after Animation Cancellation
 			StartCoroutine(HighlightMessageLog());
 		}
 		else

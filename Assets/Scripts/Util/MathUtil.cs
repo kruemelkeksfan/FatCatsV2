@@ -160,6 +160,10 @@ public static class MathUtil
 		{
 			return days + " day";
 		}
+		else if(days >= daysPerYear * 10)
+		{
+			return Mathf.RoundToInt(days / daysPerYear) + " years";
+		}
 		else if(days >= daysPerYear)
 		{
 			return (days / daysPerYear).ToString("F1") + " years";

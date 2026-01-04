@@ -118,7 +118,7 @@ public class ConstructionPanelController : PanelObject
 			int maxWorkerCount = currentBuildingData.Value.maxWorkerCount * currentConstructionCount;
 			buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = maxWorkerCount.ToString();
 			buildingInfo.GetChild(5).GetComponent<TMP_Text>().text = Mathf.RoundToInt(availableBuildingStyles[currentBuildingStyle].baseQuality * 100.0f) + "%";
-			buildingInfo.GetChild(12).GetComponent<TMP_Text>().text = "(" + MathUtil.GetTimespanString(buildingController.CalculateLifespan(availableBuildingStyles[currentBuildingStyle].baseQuality)) + ")";
+			buildingInfo.GetChild(12).GetComponent<TMP_Text>().text = MathUtil.GetTimespanString(buildingController.CalculateLifespan(availableBuildingStyles[currentBuildingStyle].baseQuality));
 			StringBuilder buildingCostText = new StringBuilder();
 			List<Tuple<string, int>> necessaryConstructionMaterials = ConstructionSite.GetConstructionMaterials(currentBuildingData.Value, availableBuildingStyles[currentBuildingStyle], currentConstructionCount);
 			int k = 0;

@@ -207,7 +207,7 @@ public class BuildingController : PanelObject
 				else if(constructionSites[building].action == ConstructionSite.Action.Deconstruction)
 				{
 					float materialQuality = building.quality * (1.0f / building.buildingStyle.baseQuality);
-					List<Tuple<string, int>> deconstructionMaterials = ConstructionSite.GetDeconstructionMaterials(currentBuilding, constructionSites[building].destructionCount);
+					List<Tuple<string, int>> deconstructionMaterials = ConstructionSite.GetDeconstructionMaterials(building, constructionSites[building].destructionCount);
 					for(int i = 0; i < building.buildingStyle.materials.Length; i++)
 					{
 						building.connectedInventory.DepositGood(new Good(
@@ -541,7 +541,7 @@ public class BuildingController : PanelObject
 			// General Info
 			buildingInfo.GetChild(1).GetComponent<TMP_Text>().text = currentBuilding.size.ToString();
 			buildingInfo.GetChild(3).GetComponent<TMP_Text>().text = Mathf.RoundToInt(currentBuilding.quality * 100.0f) + "%";
-			buildingInfo.GetChild(8).GetComponent<TMP_Text>().text = "(" + MathUtil.GetTimespanString(CalculateLifespan(currentBuilding.quality)) + ")";
+			buildingInfo.GetChild(8).GetComponent<TMP_Text>().text = MathUtil.GetTimespanString(CalculateLifespan(currentBuilding.quality));
 
 			// Production
 			bool playerOwned = currentBuilding.owner != null && currentBuilding.owner == player;
@@ -827,6 +827,12 @@ public class BuildingController : PanelObject
 							addMaterialButton.onClick.RemoveAllListeners();
 							addMaterialButton.onClick.AddListener(delegate
 							{
+								int totalNecessaryBuildingMaterials = 0;
+								for(int j = 0; j < constructionSite.necessaryBuildingMaterials.Count; ++j)
+								{
+									totalNecessaryBuildingMaterials += constructionSite.necessaryBuildingMaterials[j].Item2;
+								}
+
 								for(int j = 0; j < constructionSite.necessaryBuildingMaterials.Count; ++j)
 								{
 									int storedAmount = constructionSite.storedBuildingMaterials[j].Item2;
@@ -837,7 +843,7 @@ public class BuildingController : PanelObject
 									{
 										int addedAmount = playerInventory.WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, true);
 										storedAmount += addedAmount;
-										addedQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+										addedQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / totalNecessaryBuildingMaterials;
 										if(addedAmount > 0)
 										{
 											constructionSite.enoughMaterial = true;
@@ -855,7 +861,7 @@ public class BuildingController : PanelObject
 										{
 											int addedAmount = warehouseInventories[playerName].WithdrawGoodPartially(inventoryGood.Item1, constructionSite.necessaryBuildingMaterials[j].Item2 - storedAmount, false);
 											storedAmount += addedAmount;
-											addedQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / constructionSite.necessaryBuildingMaterials[j].Item2;
+											addedQuality += (addedAmount * inventoryGood.Item1.quality * currentBuilding.buildingStyle.baseQuality) / totalNecessaryBuildingMaterials;
 											if(addedAmount > 0)
 											{
 												constructionSite.enoughMaterial = true;
