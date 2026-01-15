@@ -322,11 +322,11 @@ public class PopulationController : MonoBehaviour
 				float needSatisfaction = 0.0f;
 				if(totalAmount < needData[i].minBuyAmount * populationGroup.Count)
 				{
-					needSatisfaction = ((float) totalAmount / (float) (needData[i].minBuyAmount * populationGroup.Count)) * 0.5f;
+					needSatisfaction = ((float)totalAmount / (float)(needData[i].minBuyAmount * populationGroup.Count)) * 0.5f;
 				}
 				else if(totalAmount < (needData[i].maxBuyAmount * populationGroup.Count))
 				{
-					needSatisfaction = 0.5f + ((float)(totalAmount - needData[i].minBuyAmount) / ((float) (needData[i].maxBuyAmount - needData[i].minBuyAmount) * populationGroup.Count)) * 0.25f;
+					needSatisfaction = 0.5f + ((float)(totalAmount - needData[i].minBuyAmount) / ((float)(needData[i].maxBuyAmount - needData[i].minBuyAmount) * populationGroup.Count)) * 0.25f;
 				}
 				else
 				{
@@ -419,6 +419,8 @@ public class PopulationController : MonoBehaviour
 
 	public void AddPopulationGroup(int income, int savings, int count, int birthyear = int.MinValue)
 	{
+		Debug.Log("Add Population Group of " + count + " People with " + income + "G Income and " + savings + "G Savings");
+
 		// PopulationGroup populationGroup = new PopulationGroup(1995, 0, 0, 1);
 		// database.Insert(populationGroup);
 
@@ -445,6 +447,7 @@ public class PopulationController : MonoBehaviour
 
 	public bool ChangeIncome(int oldIncome, int newIncome, int count)
 	{
+		Debug.Log("Change Income from " + oldIncome + "G to " + newIncome + "G for " + count + " People");
 		if(count <= 0 || oldIncome == newIncome)
 		{
 			return true;
@@ -467,13 +470,14 @@ public class PopulationController : MonoBehaviour
 
 	public int ChangeIncome(PopulationGroup oldPopulationGroup, int newIncome, int count, bool updateDatabase = true)
 	{
+		Debug.Log("Change Income from " + oldPopulationGroup.Income + "G to " + newIncome + "G for " + count + " People");
 		if(count <= 0 || oldPopulationGroup.Count <= 0 || oldPopulationGroup.Income == newIncome)
 		{
 			return 0;
 		}
 
 		int changeAmount = Mathf.Min(count, oldPopulationGroup.Count);
-		int transferredMoney = Mathf.FloorToInt(oldPopulationGroup.Savings * ((float) changeAmount / (float) oldPopulationGroup.Count));
+		int transferredMoney = Mathf.FloorToInt(oldPopulationGroup.Savings * ((float)changeAmount / (float)oldPopulationGroup.Count));
 
 		oldPopulationGroup.Count -= changeAmount;
 		oldPopulationGroup.Savings -= transferredMoney;
@@ -608,17 +612,27 @@ public class PopulationController : MonoBehaviour
 		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().Where(populationGroup => populationGroup.Income <= 0);
 		foreach(PopulationGroup populationGroup in populationQuery)
 		{
-			if(populationGroup.Income <= 0)
-			{
-				unemployed += populationGroup.Count;
-			}
-			else
-			{
-				break;
-			}
+			unemployed += populationGroup.Count;
 		}
 
 		return unemployed;
+	}
+
+	public int GetTotalSavings()
+	{
+		if(database != null)
+		{
+			int totalSavings = 0;
+			TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().Where(populationGroup => populationGroup.Savings > 0);
+			foreach(PopulationGroup populationGroup in populationQuery)
+			{
+				totalSavings += populationGroup.Savings;
+			}
+
+			return totalSavings;
+		}
+
+		return -1;
 	}
 
 	public float GetSatisfaction()

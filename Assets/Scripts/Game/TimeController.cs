@@ -57,6 +57,8 @@ public class TimeController : MonoBehaviour
 	private Queue<Action<double>>[] dailyUpdateListeners = null;
 	private int lastDailyUpdate = 1;
 	private Color? inactiveTimeButtonColor = null;
+	private Map map = null;
+	private int initialTotalSavings = -1;
 
 	public static TimeController GetInstance()
 	{
@@ -106,6 +108,22 @@ public class TimeController : MonoBehaviour
 				foreach(Action<double> dailyUpdateListener in dailyUpdateListenerList)
 				{
 					dailyUpdateListener(gameTime);
+				}
+			}
+
+			// Debug Assertion to detect Money Sinks
+			if(initialTotalSavings < 0)
+			{
+				map = MapManager.GetInstance().GetMap();
+				initialTotalSavings = map.GetTotalSavings();
+			}
+			else
+			{
+				int totalSavings = map.GetTotalSavings();
+				if(totalSavings != initialTotalSavings) // TODO: Replace with < after Implementation of Mint
+				{
+					Debug.LogWarning("Day " + gameTime + ": Total available Money changed from " + initialTotalSavings + " to " + totalSavings);
+					initialTotalSavings = totalSavings;
 				}
 			}
 

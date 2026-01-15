@@ -2210,7 +2210,7 @@ MonoBehaviour:
     - Fruits
     - Flax
     - Herbs
-    productOutputs: 140000000a0000000a000000
+    productOutputs: 140000000a00000005000000
     resourceProductIds: 
     resources: []
     resourceInputs: 
@@ -2247,7 +2247,7 @@ MonoBehaviour:
     resourceInputs: 020000000100000001000000
     buildingTime: 50
     jobTitle: Tailor
-    maxWorkerCount: 1
+    maxWorkerCount: 2
   buildingStyles:
   - buildingStyleName: Twig Hut
     baseQuality: 0.05

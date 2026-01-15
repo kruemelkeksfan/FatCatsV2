@@ -71,6 +71,17 @@ public class Map
 	{
 		return new Vector2Int(tiles.GetLength(0), tiles.GetLength(1));
 	}
+
+	public int GetTotalSavings()
+	{
+		int totalSavings = Player.GetInstance().GetInventory().GetMoney();
+		foreach(Town town in towns)
+		{
+			totalSavings += town.GetBuildingController().GetTotalSavings();
+		}
+
+		return totalSavings;
+	}
 }
 
 [Serializable]

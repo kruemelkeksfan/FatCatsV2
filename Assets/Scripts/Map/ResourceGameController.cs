@@ -168,7 +168,7 @@ public class ResourceGameController : MonoBehaviour
 
 		foreach(Tuple<string, RectTransform> resourceIcon in resourceIcons)
 		{
-			if(resourceIcon != null)
+			if(resourceIcon.Item2 != null)
 			{
 				GameObject.Destroy(resourceIcon.Item2.gameObject);
 			}

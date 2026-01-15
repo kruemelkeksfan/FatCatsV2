@@ -61,7 +61,7 @@ public class Building
 		// If this Building can produce anything, we will increment currentProductId to 0 with ChangeProduction()
 		if(buildingData.products.Length > 0)
 		{
-			ChangeProduction();
+			ChangeProduction(0);
 		}
 		townWorkers = 0;
 		playerWorkers = new List<Player>(1);
@@ -96,21 +96,19 @@ public class Building
 		return 0;
 	}
 
-	public void ChangeProduction(PanelManager panelManager = null, PanelObject panelObject = null)
+	public void ChangeProduction(int productId)
 	{
-		currentProductId = (currentProductId + 1) % buildingData.products.Length;
-		currentResourceInputs.Clear();
-		for(int i = 0; i < buildingData.resourceProductIds.Length; ++i)
+		if(productId < buildingData.products.Length)
 		{
-			if(i == currentProductId)
+			currentProductId = productId;
+			currentResourceInputs.Clear();
+			for(int i = 0; i < buildingData.resourceProductIds.Length; ++i)
 			{
-				currentResourceInputs.Add(new Tuple<string, int>(buildingData.resources[i], buildingData.resourceInputs[i]));
+				if(i == productId)
+				{
+					currentResourceInputs.Add(new Tuple<string, int>(buildingData.resources[i], buildingData.resourceInputs[i]));
+				}
 			}
-		}
-
-		if(panelObject != null)
-		{
-			panelManager?.QueuePanelUpdate(panelObject);
 		}
 	}
 

@@ -285,4 +285,9 @@ public class Town : PanelObject
 	{
 		return townName;
 	}
+
+	public BuildingController GetBuildingController()
+	{
+		return buildingController;
+	}
 }

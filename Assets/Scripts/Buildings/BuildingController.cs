@@ -201,7 +201,7 @@ public class BuildingController : PanelObject
 					building.quality = Mathf.Clamp(building.quality, 0.0f, building.buildingStyle.baseQuality); // Clamping is necessary, because necessary Repair Materials are rounded up
 					building.decayWarningIssued = false;
 					TerminateConstructionSite(building, true);
-					infoController.AddMessage("Repair of " + building.buildingData.buildingName + " complete", false, false);
+					infoController.AddMessage("Repair of " + building.buildingData.buildingName + " complete", false, true);
 				}
 				// Deconstruction
 				else if(constructionSites[building].action == ConstructionSite.Action.Deconstruction)
@@ -563,7 +563,7 @@ public class BuildingController : PanelObject
 				productDropdown.RefreshShownValue();
 				productDropdown.onValueChanged.AddListener(delegate
 				{
-					currentBuilding.currentProductId = productDropdown.value;
+					currentBuilding.ChangeProduction(productDropdown.value);
 					panelManager.QueuePanelUpdate(this);
 				});
 				outputText.text = currentBuilding.CalculateOutput() + "/day";
@@ -1146,5 +1146,16 @@ public class BuildingController : PanelObject
 	public ConstructionSite GetConstructionSite(Building building)
 	{
 		return constructionSites[building];
+	}
+
+	public int GetTotalSavings()
+	{
+		int totalSavings = populationController.GetTotalSavings();
+		foreach(Inventory warehouseInventory in warehouseInventories.Values)
+		{
+			totalSavings += warehouseInventory.GetMoney();
+		}
+
+		return totalSavings;
 	}
 }

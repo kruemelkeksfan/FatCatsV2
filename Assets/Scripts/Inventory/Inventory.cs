@@ -138,7 +138,7 @@ public class Inventory : PanelObject
 
 	public void AutoTradeSell(double time)
 	{
-		if(autoTrades != null && buildingController.IsWarehouseAdministered(player))
+		if(autoTrades != null)
 		{
 			// Cancel all Sales
 			List<Good> reservedInventoryItemKeys = new List<Good>(reservedInventoryItems.Keys);
@@ -147,27 +147,30 @@ public class Inventory : PanelObject
 				lastMarket.CancelSale(reservedInventoryItemKey, reservedInventoryItems[reservedInventoryItemKey]);
 			}
 
-			storedAmounts.Clear();
-			foreach(AutoTrade autoTrade in autoTrades.Values)
+			if(buildingController.IsWarehouseAdministered(player))
 			{
-				List<Tuple<Good, int>> inventoryGoods = GetStoredGoods(autoTrade.goodName, SortType.PerceivedQualityDescending);
-				int storeAmount = 0;
-				foreach(Tuple<Good, int> inventoryGoodEntry in inventoryGoods)
+				storedAmounts.Clear();
+				foreach(AutoTrade autoTrade in autoTrades.Values)
 				{
-					// Count Items
-					storeAmount += inventoryGoodEntry.Item2;
-
-					// Sell Stuff
-					if(autoTrade.sell && storeAmount > autoTrade.minAmount)
+					List<Tuple<Good, int>> inventoryGoods = GetStoredGoods(autoTrade.goodName, SortType.PerceivedQualityDescending);
+					int storeAmount = 0;
+					foreach(Tuple<Good, int> inventoryGoodEntry in inventoryGoods)
 					{
-						int sellAmount = storeAmount - autoTrade.minAmount;
-						storeAmount = autoTrade.minAmount;
+						// Count Items
+						storeAmount += inventoryGoodEntry.Item2;
 
-						lastMarket.PutUpForSale(inventoryGoodEntry.Item1, sellAmount, autoTrade.sellPrice);
+						// Sell Stuff
+						if(autoTrade.sell && storeAmount > autoTrade.minAmount)
+						{
+							int sellAmount = storeAmount - autoTrade.minAmount;
+							storeAmount = autoTrade.minAmount;
+
+							lastMarket.PutUpForSale(inventoryGoodEntry.Item1, sellAmount, autoTrade.sellPrice);
+						}
 					}
-				}
 
-				storedAmounts[autoTrade.goodName] = storeAmount;
+					storedAmounts[autoTrade.goodName] = storeAmount;
+				}
 			}
 		}
 	}
@@ -722,6 +725,7 @@ public class Inventory : PanelObject
 
 	public bool TransferMoney(Inventory recipient, int amount)
 	{
+		Debug.Log("Money transfer of " + amount + "G from " + gameObject + " to " + recipient.gameObject);
 		if(ChangeMoney(-amount))
 		{
 			recipient.ChangeMoney(amount);
