@@ -215,8 +215,8 @@ MonoBehaviour:
     essential: 1
   - goodCategory: 3
     budgetPercentage: 0.3
-    minBuyAmount: 0.1
-    maxBuyAmount: 1
+    minBuyAmount: 0.05
+    maxBuyAmount: 0.2
     essential: 1
   - goodCategory: 4
     budgetPercentage: 0.1

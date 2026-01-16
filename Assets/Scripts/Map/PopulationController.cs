@@ -164,12 +164,10 @@ public class PopulationController : MonoBehaviour
 		int currentYear = timeController.GetCurrentYear();
 		updateResults.Clear();
 		totalPopulation = 0;
-		satisfaction = 0.0f;
-		growth = 0;
 		// 4.a The most straightforward way to query for data
 		// is using the Table method. This can take predicates
 		// for constraining via WHERE clauses and/or adding ORDER BY clauses
-		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Income).ThenByDescending<int>(populationGroup => populationGroup.Income);
+		TableQuery<PopulationGroup> populationQuery = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Savings).ThenByDescending<int>(populationGroup => populationGroup.Income);
 		foreach(PopulationGroup populationGroup in populationQuery)
 		{
 			if(populationGroup.Count <= 0)
@@ -187,6 +185,8 @@ public class PopulationController : MonoBehaviour
 			populationGroupUpdateResult.needSatisfactions = new float[needData.Length];
 
 			populationGroup.Savings += populationGroup.Income * populationGroup.Count;
+
+			float populationGroupSatisfaction = 0.0f;
 
 			List<Tuple<Good, MarketOffer>> shoppingCart = new List<Tuple<Good, MarketOffer>>();
 			float minEssentialNeedSatisfaction = 1.0f;
@@ -336,35 +336,30 @@ public class PopulationController : MonoBehaviour
 				{
 					minEssentialNeedSatisfaction = needSatisfaction;
 				}
-				satisfaction += needSatisfaction;
+				populationGroupSatisfaction += needSatisfaction;
 
 				populationGroupUpdateResult.saleAmounts[i] = totalAmount;
 				populationGroupUpdateResult.saleQuality[i] = avgPerceivedQuality;
 				populationGroupUpdateResult.needSatisfactions[i] = needSatisfaction;
 			}
-			satisfaction /= needData.Length;
-			satisfaction = minEssentialNeedSatisfaction < satisfaction ? minEssentialNeedSatisfaction : satisfaction;
-			populationGroup.Satisfaction = satisfaction;
+			populationGroupSatisfaction /= needData.Length;
+			populationGroupSatisfaction = minEssentialNeedSatisfaction < populationGroupSatisfaction ? minEssentialNeedSatisfaction : populationGroupSatisfaction;
+			populationGroup.Satisfaction = populationGroupSatisfaction;
 
 			populationGroupUpdateResult.savings = Mathf.RoundToInt((float)populationGroup.Savings / (float)populationGroup.Count);
-			populationGroupUpdateResult.satisfaction = satisfaction;
+			populationGroupUpdateResult.satisfaction = populationGroupSatisfaction;
 
 			// Update Population
-			if(satisfaction > 0.5f)
-			{
-				growth += Mathf.FloorToInt(((satisfaction - 0.5f) * 2.0f) * populationGroup.Count * maxPopulationGainFactor);
-			}
-			else
-			{
-				growth -= Mathf.CeilToInt((1.0f - (satisfaction * 2.0f)) * populationGroup.Count * maxPopulationGainFactor);
-			}
 			totalPopulation += populationGroup.Count;
+			satisfaction += populationGroupSatisfaction * populationGroup.Count;
 
 			database.Update(populationGroup);
 
 			// We are traversing and adding Population Groups sorted by Income
 			updateResults.Add(populationGroupUpdateResult);
 		}
+		satisfaction /= totalPopulation;
+		growth = Mathf.RoundToInt(((satisfaction - 0.5f) * 2.0f) * totalPopulation * maxPopulationGainFactor);
 
 		// Secure Minimum Population
 		if(totalPopulation + growth < startingPopulation)
