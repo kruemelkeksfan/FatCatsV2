@@ -184,6 +184,7 @@ public class PopulationController : MonoBehaviour
 			populationGroupUpdateResult.saleQuality = new float[needData.Length];
 			populationGroupUpdateResult.needSatisfactions = new float[needData.Length];
 
+			Debug.Log("Population Group " + populationGroup.Id + " Income is " + (populationGroup.Income * populationGroup.Count) + "G!");
 			populationGroup.Savings += populationGroup.Income * populationGroup.Count;
 
 			float populationGroupSatisfaction = 0.0f;
@@ -316,6 +317,7 @@ public class PopulationController : MonoBehaviour
 				}
 				avgPerceivedQuality = (avgPerceivedQuality > 0) ? (avgPerceivedQuality / totalAmount) : 0;
 
+				Debug.Log("Population Group " + populationGroup.Id + " spends " + totalPrice + "G for Consumption!");
 				populationGroup.Savings -= totalPrice;
 
 				// Step 4: Calculate Satisfaction
@@ -368,12 +370,12 @@ public class PopulationController : MonoBehaviour
 		}
 
 		// Grow Population
-		if(growth >= 0)
+		if(growth > 0)
 		{
 			AddPopulationGroup(0, 0, growth);
 		}
 		// Un-grow Population
-		else
+		else if(growth < 0)
 		{
 			int peopleLeftToDisappear = -growth;
 			populationQuery = database.Table<PopulationGroup>().OrderBy<float>(populationGroup => populationGroup.Satisfaction);
@@ -408,6 +410,7 @@ public class PopulationController : MonoBehaviour
 		// Der Teufel scheißt auf den größten Haufen
 		// Give all Money of extinct Population Groups to richest Population Groups
 		PopulationGroup richestPopulationGroup = database.Table<PopulationGroup>().OrderByDescending<int>(populationGroup => populationGroup.Income).FirstOrDefault();
+		Debug.Log("Population Group " + richestPopulationGroup.Id + " inherits " + heritage + "G!");
 		richestPopulationGroup.Savings += heritage;
 		database.Update(richestPopulationGroup);
 	}
@@ -622,6 +625,7 @@ public class PopulationController : MonoBehaviour
 			foreach(PopulationGroup populationGroup in populationQuery)
 			{
 				totalSavings += populationGroup.Savings;
+				Debug.Log("Population Group " + populationGroup.Id + " of " + populationGroup.Count + " People has an Income of " + populationGroup.Income + "G and owns " + populationGroup.Savings + "G!");
 			}
 
 			return totalSavings;

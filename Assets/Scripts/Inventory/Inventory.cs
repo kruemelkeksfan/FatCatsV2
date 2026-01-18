@@ -690,6 +690,7 @@ public class Inventory : PanelObject
 
 	public bool ChangeMoney(int amount)
 	{
+		Debug.Log("Money Change of " + amount + "G from " + gameObject);
 		if(money + amount >= 0)
 		{
 			// Change Money
@@ -725,7 +726,7 @@ public class Inventory : PanelObject
 
 	public bool TransferMoney(Inventory recipient, int amount)
 	{
-		Debug.Log("Money transfer of " + amount + "G from " + gameObject + " to " + recipient.gameObject);
+		Debug.Log("Money Transfer of " + amount + "G from " + gameObject + " to " + recipient.gameObject);
 		if(ChangeMoney(-amount))
 		{
 			recipient.ChangeMoney(amount);
