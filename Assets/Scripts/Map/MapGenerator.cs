@@ -32,7 +32,7 @@ public static class MapGenerator
 		}
 		else
 		{
-			mapTile = Player.GetInstance().GetCurrentWorldTile();
+			mapTile = Player.GetLocalPlayer().GetCurrentWorldTile();
 			mapTileResources = mapTile.GetResourceTypes();
 
 			int encounterMapArea = mapWidth * mapHeight;

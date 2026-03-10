@@ -372,8 +372,9 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3466439929022890981}
-  - component: {fileID: 5508002471379027024}
   - component: {fileID: 6953914445450368206}
+  - component: {fileID: 5508002471379027024}
+  - component: {fileID: -5770023031103754334}
   m_Layer: 0
   m_Name: Player
   m_TagString: Untagged
@@ -399,20 +400,6 @@ Transform:
   - {fileID: 5257813978200380192}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &5508002471379027024
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6335122303949545940}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c0e62476de081d5418398064692dcab3, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  playerName: PlayerNameHereOneDay
-  startingMoney: 0
 --- !u!114 &6953914445450368206
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -430,6 +417,33 @@ MonoBehaviour:
   overCapacityDecayPerDay: 0.02
   inventoryEntryPrefab: {fileID: 7022509754344602647, guid: 77c1de4d948bf7341b712ee276010b65, type: 3}
   autoTradeEntryPrefab: {fileID: 7022509754344602647, guid: 109250cadcb758d4784a857db8bef0f2, type: 3}
+--- !u!114 &5508002471379027024
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6335122303949545940}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c0e62476de081d5418398064692dcab3, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerName: PlayerNameHereOneDay
+  startingMoney: 0
+  isLocal: 1
+--- !u!114 &-5770023031103754334
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6335122303949545940}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3003a2eddde9af64e95c8a46eda6bb4f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &6657870193030673710
 GameObject:
   m_ObjectHideFlags: 0

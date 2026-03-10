@@ -1,43 +1,23 @@
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
 public class Player : MonoBehaviour
 {
 	private enum Direction { Center = 0, West = 1, NorthWest = 2, NorthEast = 3, East = 4, SouthEast = 5, SouthWest = 6 };
 
-	private struct Action
-	{
-		public delegate void EndAction();
-
-		public string actionName;
-		public double startTime;
-		public double duration;
-		public bool repeat;
-		public EndAction endAction;
-
-		public Action(string actionname, double startTime, double duration, bool repeat, TMP_Text characterActionText, EndAction endAction)
-		{
-			this.actionName = actionname;
-			this.startTime = startTime;
-			this.duration = duration;
-			this.repeat = repeat;
-			this.endAction = endAction;
-
-			characterActionText.text = actionname;
-		}
-	}
-
-	private static Player instance = null;
+	private static Player localPlayer = null;
 
 	[SerializeField] private string playerName = "PlayerNameHereOneDay";
 	[SerializeField] private int startingMoney = 100;
+	[SerializeField] private bool isLocal = false;
+	private GoodManager goodManager = null;
+	private TimeController timeController = null;
+	private PanelManager panelManager = null;
+	private InfoController infoController = null;
 	private Inventory inventory = null;
 	private new Transform transform = null;
-	private new Camera camera = null;
-	private EventSystem eventSystem = null;
 	private EncounterMapManager encounterMapManager = null;
 	private List<Tile> path = null;
 	private int pathIndex = 0;
@@ -47,25 +27,25 @@ public class Player : MonoBehaviour
 	private Vector2 encounterStartPosition = Vector2.zero;
 	private Vector2 encounterTargetPosition = Vector2.zero;
 	private Vector2 nextEncounterStartPosition = Vector2.zero;
-	private GoodManager goodManager = null;
-	private TimeController timeController = null;
-	private PanelManager panelManager = null;
-	private InfoController infoController = null;
-	private Action currentAction = new Action();
+	private string actionName;
+	private double actionStartTime;
+	private double actionDuration;
+	private bool actionRepeat;
+	private System.Action endAction;
 	private bool productive = false;
 	private Building workplace = null;
+	private bool inEncounter = false;
+	private Tile currentWorldTile = null;
+	private Map currentMap = null;
 	private TMP_Text characterActionText = null;
 	private RectTransform characterActionProgressBar = null;
 	private Vector2 characterActionProgressBarPosition = Vector2.zero;
 	private Vector2 characterActionProgressBarSize = Vector2.one;
 	private Button zoomButton = null;
-	private bool inEncounter = false;
-	private Tile currentWorldTile = null;
-	private Map currentMap = null;
 
-	public static Player GetInstance()
+	public static Player GetLocalPlayer()
 	{
-		return instance;
+		return localPlayer;
 	}
 
 	private void Awake()
@@ -73,13 +53,11 @@ public class Player : MonoBehaviour
 		inventory = gameObject.GetComponent<Inventory>();
 		transform = gameObject.GetComponent<Transform>();
 
-		instance = this;
+		localPlayer = this;
 	}
 
 	private void Start()
 	{
-		camera = Camera.main;
-		eventSystem = EventSystem.current;
 		goodManager = GoodManager.GetInstance();
 		timeController = TimeController.GetInstance();
 		panelManager = PanelManager.GetInstance();
@@ -102,6 +80,14 @@ public class Player : MonoBehaviour
 		inventory.SetPlayer(this, null);
 		inventory.ChangeMoney(startingMoney);
 
+		// Spawn Town Inventories
+		currentMap = MapManager.GetInstance().GetMap();
+		foreach(Town town in currentMap.towns)
+		{
+			town.gameObject.GetComponent<BuildingController>().AddPlayerWarehouseInventory(this);
+		}
+
+		// Setup UI here instead of in LocalPlayerController, because all Actions are triggered here and we would have to call all corresponding Methods from here anyways
 		RectTransform characterPanel = panelManager.GetCharacterPanel();
 
 		// Character Action UI
@@ -117,13 +103,6 @@ public class Player : MonoBehaviour
 		{
 			ToggleEncounter();
 		});
-
-		// Spawn Town Inventories
-		currentMap = MapManager.GetInstance().GetMap();
-		foreach(Town town in currentMap.towns)
-		{
-			town.gameObject.GetComponent<BuildingController>().AddPlayerWarehouseInventory(this);
-		}
 
 		// Inventory Button
 		characterPanel.GetChild(4).GetComponent<Button>().onClick.AddListener(delegate
@@ -159,60 +138,21 @@ public class Player : MonoBehaviour
 
 	private void Update()
 	{
-		if(Input.GetMouseButtonDown(1) && !eventSystem.IsPointerOverGameObject())
-		{
-			Ray ray = camera.ScreenPointToRay(Input.mousePosition);
-			RaycastHit hit;
-			if(Physics.Raycast(ray, out hit, 10000.0f))
-			{
-				Tile targetTile = hit.collider.gameObject.GetComponentInParent<Tile>();
-				if(targetTile != null)
-				{
-					Tile startTile = transform.parent.GetComponent<Tile>();
-					List<Tile> newPath = MathUtil.FindPath(currentMap, startTile, targetTile);
-					if(newPath != null)
-					{
-						ResetAction(true, false, false);
-						currentAction = new Action("Ready to move", 0.0, 0.0, false, characterActionText, delegate
-						{
-						});
-						path = newPath;
-
-						if(path.Count > 1)
-						{
-							startTile.GetComponentInChildren<Market>()?.PlayerExit(inventory);
-
-							foreach(Tile tile in path)
-							{
-								tile.MarkMovementPath();
-							}
-							startTile.MarkMovementProgress(path[1]);
-							targetTile.MarkMovementTarget();
-						}
-					}
-					else
-					{
-						infoController.AddMessage("Could not find a Path to this Target :/", true, true);
-					}
-				}
-			}
-		}
-
 		double time = timeController.GetTime();
 		double endTime = 0.0;
 		do
 		{
-			endTime = (currentAction.duration > 0.0) ? (currentAction.startTime + currentAction.duration) : time;
-			if(currentAction.duration > 0.0 && time >= endTime)
+			endTime = (actionDuration > 0.0) ? (actionStartTime + actionDuration) : time;
+			if(actionDuration > 0.0 && time >= endTime)
 			{
-				currentAction.endAction();
-				if(currentAction.repeat)
+				endAction();
+				if(actionRepeat)
 				{
-					currentAction.startTime = endTime;
+					actionStartTime = endTime;
 				}
-				else if(currentAction.actionName == "Moving")
+				else if(actionName == "Moving")
 				{
-					currentAction = new Action("Ready to move", 0.0, 0.0, false, characterActionText, delegate
+					StartAction("Ready to move", 0.0, 0.0, false, delegate
 					{
 					});
 				}
@@ -225,7 +165,7 @@ public class Player : MonoBehaviour
 
 			if(path != null)
 			{
-				if(currentAction.actionName == "Ready to move")
+				if(actionName == "Ready to move")
 				{
 					if(pathIndex < path.Count - 1)
 					{
@@ -287,7 +227,7 @@ public class Player : MonoBehaviour
 							tileMovementCost = path[pathIndex].CalculateMovementCost(((pathIndex >= 1) ? path[pathIndex - 1] : null), movementCostFactor);
 						}
 
-						currentAction = new Action("Moving", endTime, tileMovementCost, false, characterActionText,
+						StartAction("Moving", endTime, tileMovementCost, false,
 							delegate
 							{
 								SetPosition(path[pathIndex + 1]);
@@ -331,7 +271,7 @@ public class Player : MonoBehaviour
 					}
 				}
 
-				float movementProgress = (float)((time - currentAction.startTime) / currentAction.duration);
+				float movementProgress = (float)((time - actionStartTime) / actionDuration);
 				path[pathIndex].UpdateMovementProgress(movementProgress);
 
 				if(!inEncounter)
@@ -340,21 +280,57 @@ public class Player : MonoBehaviour
 				}
 			}
 		}
-		while(currentAction.duration > 0.0 && endTime < time);
+		while(actionDuration > 0.0 && endTime < time);
 
-		if(currentAction.duration > 0.0)
+		if(isLocal)
 		{
-			characterActionProgressBar.anchoredPosition = characterActionProgressBarPosition;
-			characterActionProgressBar.sizeDelta = new Vector2(characterActionProgressBarSize.x * (float)((time - currentAction.startTime) / currentAction.duration), characterActionProgressBarSize.y);
+			if(actionDuration > 0.0)
+			{
+				characterActionProgressBar.anchoredPosition = characterActionProgressBarPosition;
+				characterActionProgressBar.sizeDelta = new Vector2(characterActionProgressBarSize.x * (float)((time - actionStartTime) / actionDuration), characterActionProgressBarSize.y);
+			}
+			else
+			{
+				characterActionProgressBar.anchoredPosition = new Vector2(
+						characterActionProgressBarPosition.x
+						+ characterActionProgressBarSize.x * 0.4f
+						+ Mathf.Sin(Time.realtimeSinceStartup * 2.0f) * characterActionProgressBarSize.x * 0.4f,
+						characterActionProgressBar.anchoredPosition.y);
+				characterActionProgressBar.sizeDelta = new Vector2(characterActionProgressBarSize.x * 0.2f, characterActionProgressBarSize.y);
+			}
+		}
+	}
+
+	public bool StartMovement(Tile targetTile)
+	{
+		Tile startTile = transform.parent.GetComponent<Tile>();
+		List<Tile> newPath = MathUtil.FindPath(currentMap, startTile, targetTile);
+		if(newPath != null)
+		{
+			ResetAction(true, false, false);
+			StartAction("Ready to move", 0.0, 0.0, false, delegate
+			{
+			});
+			path = newPath;
+
+			if(path.Count > 1)
+			{
+				startTile.GetComponentInChildren<Market>()?.PlayerExit(inventory);
+
+				foreach(Tile tile in path)
+				{
+					tile.MarkMovementPath();
+				}
+				startTile.MarkMovementProgress(path[1]);
+				targetTile.MarkMovementTarget();
+			}
+
+			return true;
 		}
 		else
 		{
-			characterActionProgressBar.anchoredPosition = new Vector2(
-					characterActionProgressBarPosition.x
-					+ characterActionProgressBarSize.x * 0.4f
-					+ Mathf.Sin(Time.realtimeSinceStartup * 2.0f) * characterActionProgressBarSize.x * 0.4f,
-					characterActionProgressBar.anchoredPosition.y);
-			characterActionProgressBar.sizeDelta = new Vector2(characterActionProgressBarSize.x * 0.2f, characterActionProgressBarSize.y);
+			infoController.AddMessage("Could not find a Path to this Target :/", true, true);
+			return false;
 		}
 	}
 
@@ -368,6 +344,20 @@ public class Player : MonoBehaviour
 		movementCostFactor += (carryBulk * 0.01f);
 
 		return movementCostFactor;
+	}
+
+	private void StartAction(string actionName, double startTime, double duration, bool repeat, System.Action endAction)
+	{
+		this.actionName = actionName;
+		this.actionStartTime = startTime;
+		this.actionDuration = duration;
+		this.actionRepeat = repeat;
+		this.endAction = endAction;
+
+		if(localPlayer)
+		{
+			characterActionText.text = actionName;
+		}
 	}
 
 	public void ResetAction(bool resetPath, bool performEndAction, bool setIdle)
@@ -391,12 +381,12 @@ public class Player : MonoBehaviour
 
 		if(performEndAction)
 		{
-			currentAction.endAction();
+			endAction();
 		}
 
 		if(setIdle)
 		{
-			currentAction = new Action("Idle", 0.0, 0.0, false, characterActionText, delegate
+			StartAction("Idle", 0.0, 0.0, false, delegate
 			{
 			});
 
@@ -416,7 +406,7 @@ public class Player : MonoBehaviour
 		// TODO: Check if necessary tool is equipped (resource.tool)
 		// TODO: Tools need to increase harvestYield, bc harvestYield for trees is way too low right now
 		// 0.04167 == 1h
-		currentAction = new Action("Collecting " + resource.goodName, timeController.GetTime(), 0.04167, true, characterActionText, delegate
+		StartAction("Collecting " + resource.goodName, timeController.GetTime(), 0.04167, true, delegate
 		{
 			Good collectedGood = new Good(goodManager.GetGoodData(resource.goodName), 1.0f, 1.0f, collector);   // TODO: Add real Quality and perceived Quality based on Skills
 
@@ -455,7 +445,7 @@ public class Player : MonoBehaviour
 	{
 		ResetAction(true, false, false);
 		double time = timeController.GetTime();
-		currentAction = new Action("Working as " + (building.underConstruction ? "Construction Worker" : building.buildingData.jobTitle), time, (System.Math.Ceiling(time) + 0.0001 - time) + 0.0001, true, characterActionText, delegate
+		StartAction("Working as " + (building.underConstruction ? "Construction Worker" : building.buildingData.jobTitle), time, (System.Math.Ceiling(time) + 0.0001 - time) + 0.0001, true, delegate
 		{
 			productive = true;
 
@@ -465,11 +455,11 @@ public class Player : MonoBehaviour
 
 				panelManager.QueuePanelUpdate(buildingController); // Necessary to update ETAs for Building Completion
 
-				currentAction.duration = constructionSite.enoughMaterial ? constructionSite.GetTimeLeft() : 1.0;
+				actionDuration = constructionSite.enoughMaterial ? constructionSite.GetTimeLeft() : 1.0;
 			}
 			else
 			{
-				currentAction.duration = 1.0;
+				actionDuration = 1.0;
 			}
 		});
 		workplace = building;
@@ -482,7 +472,7 @@ public class Player : MonoBehaviour
 		{
 			// Start over Movement to apply lower Movement Cost
 			ResetAction(false, false, false);
-			currentAction = new Action("Ready to move", 0.0, 0.0, false, characterActionText, delegate
+			StartAction("Ready to move", 0.0, 0.0, false, delegate
 			{
 			});
 		}
@@ -513,8 +503,7 @@ public class Player : MonoBehaviour
 
 	public bool IsLocalPlayer()
 	{
-		// Remote Players get their own Class
-		return true;
+		return localPlayer;
 	}
 
 	public bool IsProductive()
@@ -549,7 +538,7 @@ public class Player : MonoBehaviour
 
 	public string GetCurrentActionName()
 	{
-		return currentAction.actionName;
+		return actionName;
 	}
 
 	public void SetPosition(Tile tile, Map currentMap = null)

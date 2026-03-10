@@ -74,7 +74,7 @@ public class Map
 
 	public int GetTotalSavings()
 	{
-		int totalSavings = Player.GetInstance().GetInventory().GetMoney();
+		int totalSavings = Player.GetLocalPlayer().GetInventory().GetMoney();
 		foreach(Town town in towns)
 		{
 			totalSavings += town.GetBuildingController().GetTotalSavings();

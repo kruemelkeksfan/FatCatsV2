@@ -8,7 +8,6 @@ public class GameController : MonoBehaviour
 	private static GameController instance = null;
 	private static string deathMessage = null;
 
-	private TimeController timeController = null;
 	private bool killScene = false;
 	private bool sceneDead = false;
 
@@ -20,11 +19,6 @@ public class GameController : MonoBehaviour
 	private void Awake()
 	{
 		instance = this;
-	}
-
-	private void Start()
-	{
-		timeController = TimeController.GetInstance();
 	}
 
 	private void Update()

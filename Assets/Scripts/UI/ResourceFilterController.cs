@@ -12,7 +12,7 @@ public class ResourceFilterController : MonoBehaviour
 	private void Start()
 	{
 		transform = GetComponent<Transform>();
-		player = Player.GetInstance();
+		player = Player.GetLocalPlayer();
 
 		inactiveFilterButtonColor = transform.GetChild(0).GetComponent<Image>().color;
 	}
