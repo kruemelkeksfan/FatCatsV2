@@ -2508,12 +2508,14 @@ MonoBehaviour:
   oreDepositChance: 0.02
   townPrefabs:
   - {fileID: 3485394049712569528, guid: 46016129324d6604081392762736e06e, type: 3}
-  maxTownCount: 20
+  maxTownCount: 10
+  aiPlayerCount: 20
   terrainParent: {fileID: 753599730}
   minTileReserve: 1
   maxTileReserve: 1
   tilesPerUpdate: 1
-  playerPrefab: {fileID: 5508002471379027024, guid: b85c696d4768f014295210e0a9f97fa9, type: 3}
+  localPlayerPrefab: {fileID: 5508002471379027024, guid: b85c696d4768f014295210e0a9f97fa9, type: 3}
+  aiPlayerPrefab: {fileID: 8678775164022949046, guid: c2c59f425cfc265488c70ab02cabc692, type: 3}
   sightlineEyeHeight: 5.5
 --- !u!1001 &1000322129
 PrefabInstance:

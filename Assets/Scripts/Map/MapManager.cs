@@ -181,12 +181,14 @@ public class MapManager : MonoBehaviour
 	[SerializeField] private float oreDepositChance = 0.05f;
 	[SerializeField] private Town[] townPrefabs = { };
 	[SerializeField] private int maxTownCount = 20;
+	[SerializeField] private int aiPlayerCount = 50;
 	[SerializeField] private Transform terrainParent = null;
 	[SerializeField] private int minTileReserve = 100;
 	[SerializeField] private int maxTileReserve = 200;
 	[SerializeField] private int tilesPerUpdate = 10;
-	[SerializeField] private Player playerPrefab = null;
-	[SerializeField] private float sightlineEyeHeight = 5.5f;
+	[SerializeField] private Player localPlayerPrefab = null;
+    [SerializeField] private Player aiPlayerPrefab = null;
+    [SerializeField] private float sightlineEyeHeight = 5.5f;
 	private TilePool tilePool = null;
 	private Map map = null;
 
@@ -208,8 +210,14 @@ public class MapManager : MonoBehaviour
 			terrainParent,
 			tilePool);
 
-		// Spawn Player
-		StartCoroutine(SetPlayerPosition(GameObject.Instantiate<Player>(playerPrefab)));
+		// Spawn Local Player
+		StartCoroutine(SetPlayerPosition(GameObject.Instantiate<Player>(localPlayerPrefab)));
+
+		// Spawn AI Players
+		for(int i = 0; i < aiPlayerCount; ++i)
+		{
+            StartCoroutine(SetPlayerPosition(GameObject.Instantiate<Player>(aiPlayerPrefab)));
+        }
 	}
 
 	public void Update()
