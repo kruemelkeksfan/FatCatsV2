@@ -60,6 +60,7 @@ public class Tile : PanelObject
 	private Vector3 initialResourceMarkerSize = Vector3.one;
 	private string currentResourceFilter = string.Empty;
 	private ResourceGameController resourceGameController = null;
+	private Transform playerParent = null;
 
 	private void Awake()
 	{
@@ -458,6 +459,16 @@ public class Tile : PanelObject
 		return maxVisionRange;
 	}
 
+	public Transform GetPlayerParent()
+	{
+		if(playerParent == null)
+		{
+			playerParent = transform.GetChild(3);
+		}
+
+		return playerParent;
+	}
+
 	public void SetForest(bool forest)
 	{
 		this.forest = forest;
@@ -474,9 +485,15 @@ public class Tile : PanelObject
 
 		if(fogOfWar == FogOfWar.Invisible)
 		{
-			transform.GetChild(2).gameObject.SetActive(false);
 			if(town != null)
 			{
+				transform.GetChild(2).gameObject.SetActive(false);
+				transform.GetChild(3).gameObject.SetActive(false);
+				transform.GetChild(4).gameObject.SetActive(false);
+			}
+			else
+			{
+				transform.GetChild(2).gameObject.SetActive(false);
 				transform.GetChild(3).gameObject.SetActive(false);
 			}
 
@@ -491,10 +508,12 @@ public class Tile : PanelObject
 			if(town != null)
 			{
 				transform.GetChild(3).gameObject.SetActive(true);
+				transform.GetChild(4).gameObject.SetActive(true);
 			}
 			else
 			{
 				transform.GetChild(2).gameObject.SetActive(true);
+				transform.GetChild(3).gameObject.SetActive(true);
 			}
 
 			transform.GetChild(0).gameObject.SetActive(false);
@@ -510,10 +529,12 @@ public class Tile : PanelObject
 			if(town != null)
 			{
 				transform.GetChild(3).gameObject.SetActive(true);
+				transform.GetChild(4).gameObject.SetActive(true);
 			}
 			else
 			{
 				transform.GetChild(2).gameObject.SetActive(true);
+				transform.GetChild(3).gameObject.SetActive(true);
 			}
 
 			transform.GetChild(0).gameObject.SetActive(false);

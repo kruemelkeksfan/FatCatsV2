@@ -53,7 +53,10 @@ public class Player : MonoBehaviour
         inventory = gameObject.GetComponent<Inventory>();
         transform = gameObject.GetComponent<Transform>();
 
-        localPlayer = this;
+        if(isLocal)
+        {
+            localPlayer = this;
+        }
     }
 
     private void Start()
@@ -306,7 +309,7 @@ public class Player : MonoBehaviour
 
     public bool StartMovement(Tile targetTile)
     {
-        Tile startTile = transform.parent.GetComponent<Tile>();
+        Tile startTile = transform.GetComponentInParent<Tile>();
         List<Tile> newPath = MathUtil.FindPath(currentMap, startTile, targetTile);
         if(newPath != null)
         {
@@ -357,7 +360,7 @@ public class Player : MonoBehaviour
         this.actionRepeat = repeat;
         this.endAction = endAction;
 
-        if(localPlayer)
+        if(isLocal)
         {
             characterActionText.text = actionName;
         }
@@ -506,7 +509,7 @@ public class Player : MonoBehaviour
 
     public bool IsLocalPlayer()
     {
-        return localPlayer;
+        return isLocal;
     }
 
     public bool IsProductive()
@@ -551,7 +554,7 @@ public class Player : MonoBehaviour
             this.currentMap = newMap;
         }
 
-        transform.SetParent(tile.GetTransform(), false);
+        transform.SetParent(tile.GetPlayerParent(), false);
         if(isLocal)
         {
             this.currentMap.UpdateFogOfWar(tile);
@@ -564,7 +567,10 @@ public class Player : MonoBehaviour
             {
                 currentWorldTile = tile;
 
-                zoomButton.gameObject.SetActive(tile.GetTown() == null); // Do not display Zoom in Button on Town Tiles
+                if(isLocal)
+                {
+                    zoomButton.gameObject.SetActive(tile.GetTown() == null); // Do not display Zoom in Button on Town Tiles
+                }
 
                 encounterPosition = nextEncounterStartPosition;
             }
