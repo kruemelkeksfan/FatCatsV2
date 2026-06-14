@@ -432,6 +432,9 @@ MonoBehaviour:
   playerName: PlayerNameHereOneDay
   startingMoney: 0
   isLocal: 1
+  playerFiguresPerLevel: 18
+  playerFigureHeight: 0.2
+  playerFigureDiameter: 0.06
 --- !u!114 &-5770023031103754334
 MonoBehaviour:
   m_ObjectHideFlags: 0

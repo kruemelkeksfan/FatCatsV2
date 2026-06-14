@@ -61,10 +61,12 @@ public class Tile : PanelObject
 	private string currentResourceFilter = string.Empty;
 	private ResourceGameController resourceGameController = null;
 	private Transform playerParent = null;
+	private List<Player> occupiedPlayerPositions = null;
 
 	private void Awake()
 	{
 		transform = gameObject.GetComponent<Transform>();
+		occupiedPlayerPositions = new List<Player>();
 
 		SetFogOfWar(FogOfWar.Invisible);
 	}
@@ -407,6 +409,40 @@ public class Tile : PanelObject
 				resourceParent.GetChild(0).gameObject.SetActive(false);
 			}
 		}
+	}
+
+	public int ReservePlayerPosition(Player player)
+	{
+		// Get all Players who are currently present on this Tile
+		Player[] currentPlayers = gameObject.GetComponentsInChildren<Player>();
+		for(int i = 0; i < occupiedPlayerPositions.Count; ++i)
+		{
+			// Check if we have a free Slot because a Player left
+			bool playerGone = true;
+			foreach(Player currentPlayer in currentPlayers)
+			{
+				if(currentPlayer == occupiedPlayerPositions[i])
+				{
+					playerGone = false;
+					break;
+				}
+			}
+			if(playerGone)
+			{
+				occupiedPlayerPositions[i] = null;
+			}
+
+			// Reserve the first free Position
+			if(occupiedPlayerPositions[i] == null)
+			{
+				occupiedPlayerPositions[i] = player;
+				return i;
+			}
+		}
+
+		// If we could not find a free Spot, append a new Position
+		occupiedPlayerPositions.Add(player);
+		return occupiedPlayerPositions.Count - 1;
 	}
 
 	public bool IsEncounterTile()
