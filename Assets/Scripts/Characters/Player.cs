@@ -35,7 +35,7 @@ public class Player : MonoBehaviour
 	private double actionStartTime;
 	private double actionDuration;
 	private bool actionRepeat;
-	private System.Action endAction;
+	private Action endAction;
 	private bool productive = false;
 	private Building workplace = null;
 	private bool inEncounter = false;

@@ -302,6 +302,25 @@ public class ConstructionSite
 	}
 }
 
+[Serializable]
+public class ProductionChain
+{
+	public string product;
+	public Dictionary<BuildingData, int> buildingCounts;
+	public int totalBuildingCount;
+
+	public ProductionChain(string product)
+	{
+		this.product = product;
+
+		buildingCounts = new Dictionary<BuildingData, int>();
+		totalBuildingCount = 0;
+
+		// TODO: Scan all Buildings
+		//buildingCounts.Add();
+	}
+}
+
 public class BuildingManager : MonoBehaviour
 {
 	private static BuildingManager instance = null;
