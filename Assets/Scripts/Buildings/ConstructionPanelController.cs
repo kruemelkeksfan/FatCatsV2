@@ -9,6 +9,7 @@ public class ConstructionPanelController : PanelObject
 {
 	[SerializeField] private RectTransform newBuildingEntryPrefab = null;
 	[SerializeField] private Color selectionColor = new Color();
+	private ProductionChainPanelController productionChainPanelController = null;
 	private BuildingController buildingController = null;
 	private string townName = null;
 	private BuildingData[] availableBuildingData = null;
@@ -21,6 +22,7 @@ public class ConstructionPanelController : PanelObject
 	{
 		base.Start();
 
+		productionChainPanelController = BuildingManager.GetInstance().GetProductionChainPanelController();
 		buildingController = gameObject.GetComponent<BuildingController>();
 		townName = gameObject.GetComponent<Town>().GetTownName();
 		BuildingManager buildingManager = BuildingManager.GetInstance();
@@ -39,9 +41,13 @@ public class ConstructionPanelController : PanelObject
 
 		panel.GetChild(0).GetChild(0).GetComponent<TMP_Text>().text = "Construction - " + townName;
 
-		// RectTransform topInfoBar = (RectTransform)panel.GetChild(1);
-		// topInfoBar.GetChild(1).GetComponent<TMP_Text>().text = populationController.GetUnemployedPopulation() + "/" + populationController.GetTotalPopulation();
-		// topInfoBar.GetChild(3).GetComponent<TMP_Text>().text = populationController.CalculateAverageIncome() + "G";
+		RectTransform topInfoBar = (RectTransform)panel.GetChild(1);
+		Button productionChainButton = topInfoBar.GetChild(0).GetComponent<Button>();
+		productionChainButton.onClick.RemoveAllListeners();
+		productionChainButton.onClick.AddListener(delegate
+			{
+				panelManager.OpenPanel(productionChainPanelController);
+			});
 
 		// LIST
 		RectTransform listParent = (RectTransform)panel.GetChild(2).GetChild(0).GetChild(0);

@@ -2131,6 +2131,7 @@ GameObject:
   m_Component:
   - component: {fileID: 968220741}
   - component: {fileID: 968220740}
+  - component: {fileID: 968220742}
   m_Layer: 0
   m_Name: BuildingManager
   m_TagString: Untagged
@@ -2282,6 +2283,20 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &968220742
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 968220739}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 78ae71c1e1982a64d9d69347e5486c52, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  panelObjectType: 9
+  productionChainEntryPrefab: {fileID: 2736653795956931619, guid: e74634cc3c37bf840974f88697d48baf, type: 3}
 --- !u!1001 &973899701
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -4000,6 +4015,7 @@ MonoBehaviour:
   - {fileID: 1501393398835742014, guid: 46269541284ec624e83f8e91f2b7c256, type: 3}
   - {fileID: 1501393398835742014, guid: f0a460552039abc4aa83f5e77b0494ff, type: 3}
   - {fileID: 1501393398835742014, guid: 750b7ae19c59bb4438f2a374f75c0082, type: 3}
+  - {fileID: 5499159125409869715, guid: f7144a22307792445b30bd4da2c2c452, type: 3}
   panelParent: {fileID: 1949739176}
   maxTiledPanelCount: 4
   maxPanelCount: 4
